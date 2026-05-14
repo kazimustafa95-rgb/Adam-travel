@@ -71,6 +71,26 @@ class AppSettingSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'group_name' => 'home',
+                'key' => 'home.trending_searches',
+                'value' => json_encode([
+                    'items' => [
+                        [
+                            'title' => 'Hidden Gems',
+                            'subtitle' => 'Quiet spots locals love',
+                            'theme' => 'teal',
+                        ],
+                        [
+                            'title' => 'Sunset Spots',
+                            'subtitle' => 'Golden hour viewpoints',
+                            'theme' => 'orange',
+                        ],
+                    ],
+                ], JSON_THROW_ON_ERROR),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ], ['key'], ['group_name', 'value', 'updated_at']);
     }
 }

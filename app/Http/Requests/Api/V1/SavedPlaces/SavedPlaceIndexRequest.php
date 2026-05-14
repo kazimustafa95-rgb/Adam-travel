@@ -22,6 +22,7 @@ class SavedPlaceIndexRequest extends BaseApiRequest
             'q' => ['nullable', 'string', 'max:255'],
             'category' => ['nullable', Rule::in(SavedPlaceCategory::values())],
             'region_label' => ['nullable', 'string', 'max:100'],
+            'saved_place_collection_id' => ['nullable', 'integer', 'exists:saved_place_collections,id'],
             'visibility' => ['nullable', Rule::in(['private', 'trip_shared'])],
             'is_favorite' => ['nullable', 'boolean'],
             'sort' => ['nullable', Rule::in(['newest', 'oldest', 'name', 'favorites'])],

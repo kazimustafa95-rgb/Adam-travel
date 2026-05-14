@@ -3,6 +3,7 @@
 namespace App\Services\SavedPlaces;
 
 use App\Models\SavedPlace;
+use App\Models\SavedPlaceCollection;
 use App\Models\User;
 use App\Services\Billing\SubscriptionService;
 use App\Services\Locations\LocationService;
@@ -10,14 +11,14 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class SavedPlaceService
 {
     public function __construct(
         protected LocationService $locationService,
         protected SubscriptionService $subscriptionService,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $filters
@@ -48,13 +49,14 @@ class SavedPlaceService
                 'title_override' => $payload['title_override'] ?? null,
                 'notes' => $payload['notes'] ?? null,
                 'category' => $payload['category'],
-                'region_label' => $payload['region_label'] ?? null,
+                'region_label' => $this->resolveRegionLabel($user, $payload),
+                'saved_place_collection_id' => $payload['saved_place_collection_id'] ?? null,
                 'is_favorite' => (bool) ($payload['is_favorite'] ?? false),
                 'visibility' => $payload['visibility'] ?? 'private',
                 'version' => 1,
             ]);
 
-            return $savedPlace->load('location');
+            return $savedPlace->load(['location', 'savedPlaceCollection']);
         });
     }
 
@@ -73,7 +75,10 @@ class SavedPlaceService
                 'title_override' => array_key_exists('title_override', $payload) ? $payload['title_override'] : $savedPlace->title_override,
                 'notes' => array_key_exists('notes', $payload) ? $payload['notes'] : $savedPlace->notes,
                 'category' => $payload['category'] ?? $savedPlace->category,
-                'region_label' => array_key_exists('region_label', $payload) ? $payload['region_label'] : $savedPlace->region_label,
+                'region_label' => $this->resolveRegionLabel($savedPlace->user, $payload, $savedPlace->region_label),
+                'saved_place_collection_id' => array_key_exists('saved_place_collection_id', $payload)
+                    ? $payload['saved_place_collection_id']
+                    : $savedPlace->saved_place_collection_id,
                 'is_favorite' => array_key_exists('is_favorite', $payload) ? (bool) $payload['is_favorite'] : $savedPlace->is_favorite,
                 'visibility' => $payload['visibility'] ?? $savedPlace->visibility,
                 'version' => $savedPlace->version + 1,
@@ -81,7 +86,7 @@ class SavedPlaceService
 
             $savedPlace->save();
 
-            return $savedPlace->fresh()->load('location');
+            return $savedPlace->fresh()->load(['location', 'savedPlaceCollection']);
         });
     }
 
@@ -137,7 +142,7 @@ class SavedPlaceService
         return [
             'saved_places_count' => (clone $query)->count(),
             'favorite_places_count' => (clone $query)->where('is_favorite', true)->count(),
-            'regions_count' => (clone $query)->whereNotNull('region_label')->distinct('region_label')->count('region_label'),
+            'regions_count' => SavedPlaceCollection::query()->where('user_id', $user->id)->count(),
         ];
     }
 
@@ -175,11 +180,50 @@ class SavedPlaceService
 
         $limit = (int) ($filters['limit'] ?? 500);
 
-        return $query
+        $pins = $query
             ->orderByDesc('is_favorite')
             ->orderByDesc('created_at')
             ->limit($limit)
             ->get();
+
+        if (
+            isset($filters['latitude'], $filters['longitude'], $filters['radius_meters']) &&
+            $filters['latitude'] !== null &&
+            $filters['longitude'] !== null &&
+            $filters['radius_meters'] !== null
+        ) {
+            $latitude = (float) $filters['latitude'];
+            $longitude = (float) $filters['longitude'];
+            $radiusMeters = (int) $filters['radius_meters'];
+
+            $pins = $pins
+                ->filter(function (SavedPlace $savedPlace) use ($latitude, $longitude, $radiusMeters): bool {
+                    if ($savedPlace->location?->latitude === null || $savedPlace->location?->longitude === null) {
+                        return false;
+                    }
+
+                    return $this->locationService->distanceInMeters(
+                        $latitude,
+                        $longitude,
+                        (float) $savedPlace->location->latitude,
+                        (float) $savedPlace->location->longitude,
+                    ) <= $radiusMeters;
+                })
+                ->values();
+        }
+
+        return $pins;
+    }
+
+    public function detailForUser(SavedPlace $savedPlace): SavedPlace
+    {
+        return $savedPlace->load([
+            'location',
+            'savedPlaceCollection',
+            'import.candidates',
+            'tripPlaces.trip.owner',
+            'tripPlaces.trip.members',
+        ]);
     }
 
     /**
@@ -209,6 +253,10 @@ class SavedPlaceService
             $query->where('region_label', $filters['region_label']);
         }
 
+        if (! empty($filters['saved_place_collection_id'])) {
+            $query->where('saved_place_collection_id', $filters['saved_place_collection_id']);
+        }
+
         if (! empty($filters['visibility'])) {
             $query->where('visibility', $filters['visibility']);
         }
@@ -228,10 +276,41 @@ class SavedPlaceService
     protected function queryForUser(User $user): Builder
     {
         return SavedPlace::query()
-            ->with('location')
+            ->with(['location', 'savedPlaceCollection'])
             ->where('user_id', $user->id)
             ->whereHas('location', function (Builder $locationQuery): void {
                 $locationQuery->where('is_moderated_hidden', false);
             });
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    protected function resolveRegionLabel(User $user, array $payload, ?string $fallback = null): ?string
+    {
+        if (array_key_exists('saved_place_collection_id', $payload)) {
+            if ($payload['saved_place_collection_id'] === null) {
+                return null;
+            }
+
+            $collectionName = SavedPlaceCollection::query()
+                ->where('user_id', $user->id)
+                ->whereKey($payload['saved_place_collection_id'])
+                ->value('name');
+
+            if ($collectionName === null) {
+                throw ValidationException::withMessages([
+                    'saved_place_collection_id' => ['The selected saved place collection is not available.'],
+                ]);
+            }
+
+            return $collectionName;
+        }
+
+        if (array_key_exists('region_label', $payload)) {
+            return $payload['region_label'];
+        }
+
+        return $fallback;
     }
 }

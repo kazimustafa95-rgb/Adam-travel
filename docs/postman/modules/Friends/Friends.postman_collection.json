@@ -1,0 +1,382 @@
+{
+    "info": {
+        "_postman_id": "fd96ad52-acea-4838-bc06-55353caeb4df",
+        "name": "Friends - Adam Travel API",
+        "description": "Module export for Friends based on the Figma-aligned Postman organization.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{access_token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://127.0.0.1:8000",
+            "type": "string"
+        },
+        {
+            "key": "access_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "device_name",
+            "value": "QA iPhone",
+            "type": "string"
+        },
+        {
+            "key": "device_platform",
+            "value": "ios",
+            "type": "string"
+        },
+        {
+            "key": "device_identifier",
+            "value": "device-001",
+            "type": "string"
+        },
+        {
+            "key": "firebase_google_id_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "firebase_apple_id_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "otp_challenge_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "otp_code",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "reset_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "user_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "user_uuid",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "saved_place_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "import_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "import_candidate_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "trip_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "trip_version",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "invite_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "friend_request_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "notification_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "trip_invite_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "member_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "trip_place_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "itinerary_day_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "itinerary_item_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "trip_ai_run_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "suggestion_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "saved_place_collection_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "support_ticket_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "revenuecat_webhook_secret",
+            "value": "testing-revenuecat-secret",
+            "type": "string"
+        },
+        {
+            "key": "rc_event_timestamp_ms",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "rc_purchased_at_ms",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "rc_expiration_at_ms",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Friends",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/friends",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "friends"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Send Friend Request",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/friends/requests",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "friends",
+                        "requests"
+                    ]
+                },
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"recipient_email\": \"friend@example.com\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                }
+            },
+            "response": [],
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                            "    const json = pm.response.json();",
+                            "    const friend_request_id = json[\"data\"][\"id\"];",
+                            "    if (friend_request_id !== undefined && friend_request_id !== null) {",
+                            "        pm.collectionVariables.set(\"friend_request_id\", String(friend_request_id));",
+                            "    }",
+                            "}"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Cancel Friend Request",
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/friends/requests/{{friend_request_id}}",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "friends",
+                        "requests",
+                        "{{friend_request_id}}"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Accept All Friend Requests",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/profile/invitations/friends/accept-all",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "profile",
+                        "invitations",
+                        "friends",
+                        "accept-all"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Accept Friend Request",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/profile/invitations/friends/{{friend_request_id}}/accept",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "profile",
+                        "invitations",
+                        "friends",
+                        "{{friend_request_id}}",
+                        "accept"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Decline Friend Request",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/profile/invitations/friends/{{friend_request_id}}/decline",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "profile",
+                        "invitations",
+                        "friends",
+                        "{{friend_request_id}}",
+                        "decline"
+                    ]
+                }
+            },
+            "response": []
+        }
+    ]
+}

@@ -25,6 +25,7 @@ class SavedPlace extends Model
         'notes',
         'category',
         'region_label',
+        'saved_place_collection_id',
         'is_favorite',
         'visibility',
         'version',
@@ -64,6 +65,11 @@ class SavedPlace extends Model
     public function import(): BelongsTo
     {
         return $this->belongsTo(Import::class);
+    }
+
+    public function savedPlaceCollection(): BelongsTo
+    {
+        return $this->belongsTo(SavedPlaceCollection::class);
     }
 
     public function tripPlaces(): HasMany

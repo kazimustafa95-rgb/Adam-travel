@@ -2,30 +2,38 @@
 
 use App\Http\Controllers\Api\V1\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Api\V1\Auth\NewPasswordController;
-use App\Http\Controllers\Api\V1\Auth\PasswordResetOtpController;
 use App\Http\Controllers\Api\V1\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Api\V1\Auth\PasswordResetOtpController;
 use App\Http\Controllers\Api\V1\Auth\RegisteredUserController;
 use App\Http\Controllers\Api\V1\Auth\SocialAuthController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\FriendRequestController;
+use App\Http\Controllers\Api\V1\HomeSearchController;
 use App\Http\Controllers\Api\V1\ImportController;
 use App\Http\Controllers\Api\V1\InvitationController;
 use App\Http\Controllers\Api\V1\ItineraryController;
 use App\Http\Controllers\Api\V1\ItineraryItemController;
 use App\Http\Controllers\Api\V1\MapPinsController;
 use App\Http\Controllers\Api\V1\MetaController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OfflinePackageController;
 use App\Http\Controllers\Api\V1\OnboardingController;
 use App\Http\Controllers\Api\V1\PlanController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ProfileHomeController;
 use App\Http\Controllers\Api\V1\ProximityController;
+use App\Http\Controllers\Api\V1\PublicGooglePlaceDetailsController;
+use App\Http\Controllers\Api\V1\PublicLocationSuggestionsController;
+use App\Http\Controllers\Api\V1\RecentSearchController;
 use App\Http\Controllers\Api\V1\RevenueCatWebhookController;
+use App\Http\Controllers\Api\V1\SavedPlaceCategorizationController;
+use App\Http\Controllers\Api\V1\SavedPlaceCollectionController;
 use App\Http\Controllers\Api\V1\SavedPlaceController;
 use App\Http\Controllers\Api\V1\SavedPlaceSearchController;
+use App\Http\Controllers\Api\V1\SavedPlaceTripLinkController;
 use App\Http\Controllers\Api\V1\SettingsController;
-use App\Http\Controllers\Api\V1\SupportController;
 use App\Http\Controllers\Api\V1\SubscriptionController;
+use App\Http\Controllers\Api\V1\SupportController;
 use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\Api\V1\TimelineController;
 use App\Http\Controllers\Api\V1\TripAiItineraryController;
@@ -43,6 +51,16 @@ Route::prefix('v1')
     ->group(function (): void {
         Route::get('/meta', MetaController::class)->name('meta');
         Route::post('/billing/webhooks/revenuecat', RevenueCatWebhookController::class)->name('billing.webhooks.revenuecat');
+        Route::prefix('public')
+            ->name('public.')
+            ->group(function (): void {
+                Route::post('/google-place-details', PublicGooglePlaceDetailsController::class)
+                    ->middleware('throttle:proximity-check')
+                    ->name('google-place-details');
+                Route::post('/location-suggestions', PublicLocationSuggestionsController::class)
+                    ->middleware('throttle:ai-generation')
+                    ->name('location-suggestions');
+            });
 
         Route::prefix('auth')
             ->name('auth.')
@@ -77,6 +95,12 @@ Route::prefix('v1')
 
         Route::middleware(['auth:sanctum', 'active.user'])->group(function (): void {
             Route::get('/dashboard', DashboardController::class)->name('dashboard');
+            Route::get('/home/search', HomeSearchController::class)->name('home.search');
+            Route::post('/home/searches', [RecentSearchController::class, 'store'])->name('home.searches.store');
+            Route::delete('/home/searches', [RecentSearchController::class, 'destroy'])->name('home.searches.destroy');
+            Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+            Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+            Route::post('/notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
             Route::get('/profile', ProfileHomeController::class)->name('profile.home');
             Route::post('/imports', [ImportController::class, 'store'])
                 ->middleware('throttle:imports-submission')
@@ -101,10 +125,15 @@ Route::prefix('v1')
 
             Route::get('/saved-places/search', SavedPlaceSearchController::class)->name('saved-places.search');
             Route::get('/saved-places', [SavedPlaceController::class, 'index'])->name('saved-places.index');
+            Route::get('/saved-place-collections', [SavedPlaceCollectionController::class, 'index'])->name('saved-place-collections.index');
+            Route::post('/saved-place-collections', [SavedPlaceCollectionController::class, 'store'])->name('saved-place-collections.store');
             Route::post('/saved-places', [SavedPlaceController::class, 'store'])
                 ->middleware('throttle:imports-submission')
                 ->name('saved-places.store');
             Route::get('/saved-places/{savedPlace}', [SavedPlaceController::class, 'show'])->name('saved-places.show');
+            Route::post('/saved-places/{savedPlace}/categorize', [SavedPlaceCategorizationController::class, 'store'])->name('saved-places.categorize');
+            Route::get('/saved-places/{savedPlace}/trip-options', [SavedPlaceTripLinkController::class, 'index'])->name('saved-places.trip-options.index');
+            Route::post('/saved-places/{savedPlace}/trip-links', [SavedPlaceTripLinkController::class, 'store'])->name('saved-places.trip-links.store');
             Route::patch('/saved-places/{savedPlace}', [SavedPlaceController::class, 'update'])->name('saved-places.update');
             Route::delete('/saved-places/{savedPlace}', [SavedPlaceController::class, 'destroy'])->name('saved-places.destroy');
 

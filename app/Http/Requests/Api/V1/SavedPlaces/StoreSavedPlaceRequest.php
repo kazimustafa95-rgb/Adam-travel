@@ -38,6 +38,7 @@ class StoreSavedPlaceRequest extends BaseApiRequest
             'notes' => ['nullable', 'string', 'max:5000'],
             'category' => ['required', Rule::in(SavedPlaceCategory::values())],
             'region_label' => ['nullable', 'string', 'max:100'],
+            'saved_place_collection_id' => ['nullable', 'integer', 'exists:saved_place_collections,id'],
             'is_favorite' => ['sometimes', 'boolean'],
             'visibility' => ['sometimes', Rule::in(['private', 'trip_shared'])],
         ];
