@@ -2,13 +2,15 @@
 
 namespace App\Services\Trips;
 
+use App\Enums\TripMemberRole;
 use App\Enums\TripPlaceSource;
 use App\Models\SavedPlace;
 use App\Models\Trip;
 use App\Models\TripPlace;
 use App\Models\TripPlaceHeart;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -17,7 +19,7 @@ class TripPoolService
     /**
      * @return Collection<int, TripPlace>
      */
-    public function list(Trip $trip): Collection
+    public function list(Trip $trip): EloquentCollection
     {
         return TripPlace::query()
             ->where('trip_id', $trip->id)
@@ -61,6 +63,48 @@ class TripPoolService
             source: TripPlaceSource::SavedPlace,
             payload: $payload,
         );
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function tripOptionsForUser(User $user, SavedPlace $savedPlace): Collection
+    {
+        $existingTripIds = TripPlace::query()
+            ->where('saved_place_id', $savedPlace->id)
+            ->pluck('trip_id')
+            ->all();
+
+        return Trip::query()
+            ->whereHas('members', fn ($query) => $query->where('user_id', $user->id))
+            ->with([
+                'owner',
+                'members' => fn ($query) => $query->where('user_id', $user->id),
+            ])
+            ->withCount(['members', 'pool'])
+            ->orderByDesc('start_date')
+            ->orderBy('title')
+            ->get()
+            ->map(function (Trip $trip) use ($existingTripIds): array {
+                $currentRole = $trip->members->first()?->role;
+                $alreadyAdded = in_array($trip->id, $existingTripIds, true);
+                $canAdd = in_array($currentRole, [TripMemberRole::Owner, TripMemberRole::Editor], true) && ! $alreadyAdded;
+
+                return [
+                    'id' => $trip->id,
+                    'uuid' => $trip->uuid,
+                    'title' => $trip->title,
+                    'cover_image_url' => $trip->cover_image_url,
+                    'start_date' => optional($trip->start_date)?->toDateString(),
+                    'end_date' => optional($trip->end_date)?->toDateString(),
+                    'member_count' => $trip->members_count,
+                    'pool_count' => $trip->pool_count,
+                    'current_user_role' => $currentRole?->value,
+                    'already_added' => $alreadyAdded,
+                    'can_add' => $canAdd,
+                ];
+            })
+            ->values();
     }
 
     /**
@@ -114,7 +158,7 @@ class TripPoolService
                 ]);
             }
 
-            if ($member->role->value === \App\Enums\TripMemberRole::Owner->value) {
+            if ($member->role->value === TripMemberRole::Owner->value) {
                 throw ValidationException::withMessages([
                     'member' => ['The trip owner cannot be removed.'],
                 ]);
@@ -134,6 +178,26 @@ class TripPoolService
             $savedPlace,
             $actor,
             source: $payload['source'] ?? TripPlaceSource::AiSuggestion,
+            payload: $payload,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public function createFromOwnedSavedPlace(Trip $trip, SavedPlace $savedPlace, User $actor, array $payload = []): TripPlace
+    {
+        if ($savedPlace->user_id !== $actor->id) {
+            throw ValidationException::withMessages([
+                'saved_place' => ['You may only add your own saved places from the home screen.'],
+            ]);
+        }
+
+        return $this->storeTripPlace(
+            $trip,
+            $savedPlace,
+            $actor,
+            source: $payload['source'] ?? TripPlaceSource::SavedPlace,
             payload: $payload,
         );
     }

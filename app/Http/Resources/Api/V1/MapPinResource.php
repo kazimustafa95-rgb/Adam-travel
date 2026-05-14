@@ -2,11 +2,12 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Models\SavedPlace;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\SavedPlace
+ * @mixin SavedPlace
  */
 class MapPinResource extends JsonResource
 {
@@ -22,6 +23,7 @@ class MapPinResource extends JsonResource
             'category' => $this->category?->value,
             'is_favorite' => $this->is_favorite,
             'region_label' => $this->region_label,
+            'saved_place_collection_id' => $this->saved_place_collection_id,
             'latitude' => $this->location?->latitude !== null ? (float) $this->location->latitude : null,
             'longitude' => $this->location?->longitude !== null ? (float) $this->location->longitude : null,
             'city' => $this->location?->city,

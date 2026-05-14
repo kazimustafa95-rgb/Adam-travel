@@ -47,4 +47,15 @@ return [
         'webhook_secret' => env('REVENUECAT_WEBHOOK_SECRET', ''),
     ],
 
+    'google_places' => [
+        'api_key' => env('GOOGLE_MAPS_API_KEY'),
+        'base_url' => env('GOOGLE_PLACES_BASE_URL', 'https://places.googleapis.com/v1'),
+    ],
+
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+        'model' => env('OPENAI_LOCATION_MODEL', 'gpt-4o'),
+    ],
+
 ];

@@ -1,0 +1,79 @@
+{
+  "info": {
+    "_postman_id": "5d4f4f31-4e5d-4d67-a4ee-5bebe74cbc03",
+    "name": "Adam Travel Public Location APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost"
+    }
+  ],
+  "item": [
+    {
+      "name": "Google Place Details",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"place_query\": \"Lucky One Mall\",\n  \"region_code\": \"PK\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/public/google-place-details",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "google-place-details"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Location Suggestions",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"input\": \"https://example.com/travel-post\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/public/location-suggestions",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "location-suggestions"
+          ]
+        }
+      }
+    }
+  ]
+}

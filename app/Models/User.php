@@ -4,8 +4,9 @@ namespace App\Models;
 
 use App\Enums\AccountStatus;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -16,7 +17,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
@@ -85,7 +86,7 @@ class User extends Authenticatable
 
     protected function avatarUrl(): Attribute
     {
-        return Attribute::get(function (): string|null {
+        return Attribute::get(function (): ?string {
             $socialAccounts = $this->relationLoaded('socialAccounts')
                 ? $this->socialAccounts
                 : $this->socialAccounts()->get();
@@ -112,6 +113,11 @@ class User extends Authenticatable
     public function imports(): HasMany
     {
         return $this->hasMany(Import::class);
+    }
+
+    public function savedPlaceCollections(): HasMany
+    {
+        return $this->hasMany(SavedPlaceCollection::class);
     }
 
     public function savedPlaces(): HasMany
@@ -182,5 +188,15 @@ class User extends Authenticatable
     public function supportTickets(): HasMany
     {
         return $this->hasMany(SupportTicket::class);
+    }
+
+    public function recentSearches(): HasMany
+    {
+        return $this->hasMany(RecentSearch::class);
+    }
+
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(UserNotification::class);
     }
 }

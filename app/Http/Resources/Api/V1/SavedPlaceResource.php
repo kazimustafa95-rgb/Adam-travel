@@ -2,11 +2,12 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Models\SavedPlace;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\SavedPlace
+ * @mixin SavedPlace
  */
 class SavedPlaceResource extends JsonResource
 {
@@ -25,12 +26,14 @@ class SavedPlaceResource extends JsonResource
             'notes' => $this->notes,
             'category' => $this->category?->value,
             'region_label' => $this->region_label,
+            'saved_place_collection_id' => $this->saved_place_collection_id,
             'is_favorite' => $this->is_favorite,
             'visibility' => $this->visibility,
             'version' => $this->version,
             'created_at' => optional($this->created_at)?->toIso8601String(),
             'updated_at' => optional($this->updated_at)?->toIso8601String(),
             'location' => $this->whenLoaded('location', fn () => (new LocationResource($this->location))->resolve()),
+            'collection' => $this->whenLoaded('savedPlaceCollection', fn () => (new SavedPlaceCollectionResource($this->savedPlaceCollection))->resolve()),
             'import_id' => $this->import_id,
         ];
     }

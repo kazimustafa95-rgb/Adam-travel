@@ -1,0 +1,416 @@
+{
+    "info": {
+        "_postman_id": "fd2e153c-051c-4a54-a832-4d2fbbb3914a",
+        "name": "Import Flow - Adam Travel API",
+        "description": "Module export for Import Flow based on the Figma-aligned Postman organization.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{access_token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://127.0.0.1:8000",
+            "type": "string"
+        },
+        {
+            "key": "access_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "device_name",
+            "value": "QA iPhone",
+            "type": "string"
+        },
+        {
+            "key": "device_platform",
+            "value": "ios",
+            "type": "string"
+        },
+        {
+            "key": "device_identifier",
+            "value": "device-001",
+            "type": "string"
+        },
+        {
+            "key": "firebase_google_id_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "firebase_apple_id_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "otp_challenge_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "otp_code",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "reset_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "user_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "user_uuid",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "saved_place_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "import_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "import_candidate_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "trip_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "trip_version",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "invite_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "friend_request_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "notification_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "trip_invite_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "member_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "trip_place_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "itinerary_day_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "itinerary_item_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "trip_ai_run_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "suggestion_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "saved_place_collection_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "support_ticket_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "revenuecat_webhook_secret",
+            "value": "testing-revenuecat-secret",
+            "type": "string"
+        },
+        {
+            "key": "rc_event_timestamp_ms",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "rc_purchased_at_ms",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "rc_expiration_at_ms",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Create Import",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/imports",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "imports"
+                    ]
+                },
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"raw_text\": \"Place: Senso-ji Temple. City: Tokyo. Country: JP. Category: activity. Coordinates: 35.7148, 139.7967. Historic temple district with a lively market street.\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                }
+            },
+            "response": [],
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                            "    const json = pm.response.json();",
+                            "    const import_id = json[\"data\"][\"id\"];",
+                            "    if (import_id !== undefined && import_id !== null) {",
+                            "        pm.collectionVariables.set(\"import_id\", String(import_id));",
+                            "    }",
+                            "    const import_candidate_id = json[\"data\"][\"candidates\"][0][\"id\"];",
+                            "    if (import_candidate_id !== undefined && import_candidate_id !== null) {",
+                            "        pm.collectionVariables.set(\"import_candidate_id\", String(import_candidate_id));",
+                            "    }",
+                            "}"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Show Import",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/imports/{{import_id}}",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "imports",
+                        "{{import_id}}"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Retry Import",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/imports/{{import_id}}/retry",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "imports",
+                        "{{import_id}}",
+                        "retry"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Manual Override Import",
+            "request": {
+                "method": "PATCH",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/imports/{{import_id}}/manual-override",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "imports",
+                        "{{import_id}}",
+                        "manual-override"
+                    ]
+                },
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"place_name\": \"Central Park\",\n    \"category\": \"activity\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"country\": \"US\",\n    \"latitude\": 40.7829,\n    \"longitude\": -73.9654,\n    \"summary\": \"Manual correction added exact park coordinates.\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                }
+            },
+            "response": [],
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                            "    const json = pm.response.json();",
+                            "    const import_candidate_id = json[\"data\"][\"candidates\"][0][\"id\"];",
+                            "    if (import_candidate_id !== undefined && import_candidate_id !== null) {",
+                            "        pm.collectionVariables.set(\"import_candidate_id\", String(import_candidate_id));",
+                            "    }",
+                            "}"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Confirm Import",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/imports/{{import_id}}/confirm",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "imports",
+                        "{{import_id}}",
+                        "confirm"
+                    ]
+                },
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"candidate_id\": \"{{import_candidate_id}}\",\n    \"category\": \"activity\",\n    \"title_override\": \"Imported Favorite\",\n    \"notes\": \"Confirmed from Postman.\",\n    \"region_label\": \"Japan 2027\",\n    \"is_favorite\": true,\n    \"visibility\": \"private\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                }
+            },
+            "response": [],
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                            "    const json = pm.response.json();",
+                            "    const saved_place_id = json[\"data\"][\"saved_place\"][\"id\"];",
+                            "    if (saved_place_id !== undefined && saved_place_id !== null) {",
+                            "        pm.collectionVariables.set(\"saved_place_id\", String(saved_place_id));",
+                            "    }",
+                            "}"
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}

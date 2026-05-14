@@ -25,9 +25,13 @@ class MapPinsRequest extends BaseApiRequest
             'east' => ['nullable', 'numeric', 'between:-180,180'],
             'west' => ['nullable', 'numeric', 'between:-180,180'],
             'category' => ['nullable', Rule::in(SavedPlaceCategory::values())],
+            'saved_place_collection_id' => ['nullable', 'integer', 'exists:saved_place_collections,id'],
             'is_favorite' => ['nullable', 'boolean'],
             'q' => ['nullable', 'string', 'max:255'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'radius_meters' => ['nullable', 'integer', 'min:100', 'max:50000'],
         ];
     }
 
@@ -49,6 +53,10 @@ class MapPinsRequest extends BaseApiRequest
 
             if ($this->filled('north') && $this->filled('south') && (float) $this->input('south') > (float) $this->input('north')) {
                 $validator->errors()->add('south', 'South cannot be greater than north.');
+            }
+
+            if (($this->filled('latitude') xor $this->filled('longitude')) || ($this->filled('radius_meters') && ! $this->filled('latitude'))) {
+                $validator->errors()->add('radius_meters', 'Latitude, longitude, and radius_meters must be used together.');
             }
         });
     }

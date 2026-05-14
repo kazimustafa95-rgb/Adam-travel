@@ -38,6 +38,7 @@ class UpdateSavedPlaceRequest extends BaseApiRequest
             'notes' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'category' => ['sometimes', Rule::in(SavedPlaceCategory::values())],
             'region_label' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'saved_place_collection_id' => ['sometimes', 'nullable', 'integer', 'exists:saved_place_collections,id'],
             'is_favorite' => ['sometimes', 'boolean'],
             'visibility' => ['sometimes', Rule::in(['private', 'trip_shared'])],
         ];

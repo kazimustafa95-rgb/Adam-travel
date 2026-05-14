@@ -5,21 +5,21 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Requests\Api\V1\SavedPlaces\SavedPlaceIndexRequest;
 use App\Http\Requests\Api\V1\SavedPlaces\StoreSavedPlaceRequest;
 use App\Http\Requests\Api\V1\SavedPlaces\UpdateSavedPlaceRequest;
+use App\Http\Resources\Api\V1\SavedPlaceDetailResource;
 use App\Http\Resources\Api\V1\SavedPlaceResource;
 use App\Models\SavedPlace;
+use App\Models\User;
 use App\Services\SavedPlaces\SavedPlaceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SavedPlaceController extends BaseApiController
 {
-    public function __construct(protected SavedPlaceService $savedPlaceService)
-    {
-    }
+    public function __construct(protected SavedPlaceService $savedPlaceService) {}
 
     public function index(SavedPlaceIndexRequest $request): JsonResponse
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = $request->user();
         $paginator = $this->savedPlaceService->paginateForUser($user, $request->validated());
 
@@ -37,7 +37,7 @@ class SavedPlaceController extends BaseApiController
 
     public function store(StoreSavedPlaceRequest $request): JsonResponse
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = $request->user();
         $savedPlace = $this->savedPlaceService->create($user, $request->validated());
 
@@ -51,9 +51,10 @@ class SavedPlaceController extends BaseApiController
     public function show(Request $request, SavedPlace $savedPlace): JsonResponse
     {
         $this->authorize('view', $savedPlace);
+        $savedPlace = $this->savedPlaceService->detailForUser($savedPlace);
 
         return $this->success(
-            data: (new SavedPlaceResource($savedPlace->load('location')))->resolve(),
+            data: (new SavedPlaceDetailResource($savedPlace))->resolve(),
             message: 'Saved place loaded successfully.',
         );
     }

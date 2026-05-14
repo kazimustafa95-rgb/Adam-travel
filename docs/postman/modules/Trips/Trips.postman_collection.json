@@ -1,0 +1,1648 @@
+{
+    "info": {
+        "_postman_id": "568420d1-9e09-401a-bb66-034b08484440",
+        "name": "Trips - Adam Travel API",
+        "description": "Module export for Trips based on the Figma-aligned Postman organization.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{access_token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://127.0.0.1:8000",
+            "type": "string"
+        },
+        {
+            "key": "access_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "device_name",
+            "value": "QA iPhone",
+            "type": "string"
+        },
+        {
+            "key": "device_platform",
+            "value": "ios",
+            "type": "string"
+        },
+        {
+            "key": "device_identifier",
+            "value": "device-001",
+            "type": "string"
+        },
+        {
+            "key": "firebase_google_id_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "firebase_apple_id_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "otp_challenge_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "otp_code",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "reset_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "user_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "user_uuid",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "saved_place_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "import_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "import_candidate_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "trip_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "trip_version",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "invite_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "friend_request_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "notification_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "trip_invite_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "member_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "trip_place_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "itinerary_day_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "itinerary_item_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "trip_ai_run_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "suggestion_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "saved_place_collection_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "support_ticket_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "revenuecat_webhook_secret",
+            "value": "testing-revenuecat-secret",
+            "type": "string"
+        },
+        {
+            "key": "rc_event_timestamp_ms",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "rc_purchased_at_ms",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "rc_expiration_at_ms",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "List Trips",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/trips?q=&status=draft&per_page=15",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "trips"
+                    ],
+                    "query": [
+                        {
+                            "key": "q",
+                            "value": "",
+                            "disabled": false
+                        },
+                        {
+                            "key": "status",
+                            "value": "draft",
+                            "disabled": false
+                        },
+                        {
+                            "key": "per_page",
+                            "value": "15",
+                            "disabled": false
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Create Trip",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/trips",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "trips"
+                    ]
+                },
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"title\": \"Japan Spring 2027\",\n    \"description\": \"A collaborative spring route through Tokyo and Kyoto.\",\n    \"start_location_name\": \"Tokyo\",\n    \"start_latitude\": 35.6762,\n    \"start_longitude\": 139.6503,\n    \"end_location_name\": \"Kyoto\",\n    \"end_latitude\": 35.0116,\n    \"end_longitude\": 135.7681,\n    \"start_date\": \"2027-03-10\",\n    \"end_date\": \"2027-03-18\",\n    \"status\": \"draft\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                }
+            },
+            "response": [],
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                            "    const json = pm.response.json();",
+                            "    const trip_id = json[\"data\"][\"id\"];",
+                            "    if (trip_id !== undefined && trip_id !== null) {",
+                            "        pm.collectionVariables.set(\"trip_id\", String(trip_id));",
+                            "    }",
+                            "    const trip_version = json[\"data\"][\"version\"];",
+                            "    if (trip_version !== undefined && trip_version !== null) {",
+                            "        pm.collectionVariables.set(\"trip_version\", String(trip_version));",
+                            "    }",
+                            "}"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Accept Trip Invite",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/trip-invites/{{trip_invite_token}}/accept",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "trip-invites",
+                        "{{trip_invite_token}}",
+                        "accept"
+                    ]
+                }
+            },
+            "response": [],
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                            "    const json = pm.response.json();",
+                            "    const trip_id = json[\"data\"][\"id\"];",
+                            "    if (trip_id !== undefined && trip_id !== null) {",
+                            "        pm.collectionVariables.set(\"trip_id\", String(trip_id));",
+                            "    }",
+                            "}"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Single",
+            "item": [
+                {
+                    "name": "Show Trip",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List Trip Pool",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/pool",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "pool"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Show AI Itinerary",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/ai-itinerary",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "ai-itinerary"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List Itinerary",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/itinerary",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "itinerary"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List Suggestions",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/suggestions",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "suggestions"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Trip Balance",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/balance",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "balance"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Single-trip read flows shared across trip roles."
+        },
+        {
+            "name": "Owner",
+            "item": [
+                {
+                    "name": "Update Trip",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"description\": \"Updated collaborative route with Kyoto focus.\",\n    \"status\": \"active\",\n    \"cover_image_url\": \"https://images.example.com/trips/japan-spring-2027.jpg\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Trip",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Trip Invite",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/invites",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "invites"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"friend@example.com\",\n    \"role\": \"editor\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    const invite_id = json[\"data\"][\"id\"];",
+                                    "    if (invite_id !== undefined && invite_id !== null) {",
+                                    "        pm.collectionVariables.set(\"invite_id\", String(invite_id));",
+                                    "    }",
+                                    "    const trip_invite_token = json[\"data\"][\"token\"];",
+                                    "    if (trip_invite_token !== undefined && trip_invite_token !== null) {",
+                                    "        pm.collectionVariables.set(\"trip_invite_token\", String(trip_invite_token));",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Delete Trip Invite",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/invites/{{invite_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "invites",
+                                "{{invite_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Generate AI Itinerary",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/ai-itinerary/generate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "ai-itinerary",
+                                "generate"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"force_refresh\": false\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    const trip_ai_run_id = json[\"data\"][\"id\"];",
+                                    "    if (trip_ai_run_id !== undefined && trip_ai_run_id !== null) {",
+                                    "        pm.collectionVariables.set(\"trip_ai_run_id\", String(trip_ai_run_id));",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Apply AI Itinerary",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/ai-itinerary/apply",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "ai-itinerary",
+                                "apply"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"trip_ai_run_id\": \"{{trip_ai_run_id}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    const trip_version = json[\"meta\"][\"trip_version\"];",
+                                    "    if (trip_version !== undefined && trip_version !== null) {",
+                                    "        pm.collectionVariables.set(\"trip_version\", String(trip_version));",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Itinerary Day",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/itinerary/days",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "itinerary",
+                                "days"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"day_number\": 1,\n    \"title\": \"Arrival Day\",\n    \"notes\": \"Check-in, luggage, and a short evening walk.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    const itinerary_day_id = json[\"data\"][\"id\"];",
+                                    "    if (itinerary_day_id !== undefined && itinerary_day_id !== null) {",
+                                    "        pm.collectionVariables.set(\"itinerary_day_id\", String(itinerary_day_id));",
+                                    "    }",
+                                    "    const trip_version = json[\"meta\"][\"trip_version\"];",
+                                    "    if (trip_version !== undefined && trip_version !== null) {",
+                                    "        pm.collectionVariables.set(\"trip_version\", String(trip_version));",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Reorder Itinerary",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/itinerary/reorder",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "itinerary",
+                                "reorder"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"version\": \"{{trip_version}}\",\n    \"days\": [\n        {\n            \"day_id\": \"{{itinerary_day_id}}\",\n            \"items\": [\n                {\n                    \"item_id\": \"{{itinerary_item_id}}\",\n                    \"sort_order\": 1,\n                    \"starts_at\": \"2027-03-10T12:00:00Z\"\n                }\n            ]\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    const trip_version = json[\"meta\"][\"trip_version\"];",
+                                    "    if (trip_version !== undefined && trip_version !== null) {",
+                                    "        pm.collectionVariables.set(\"trip_version\", String(trip_version));",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Itinerary Item",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/itinerary/items",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "itinerary",
+                                "items"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"itinerary_day_id\": \"{{itinerary_day_id}}\",\n    \"trip_place_id\": \"{{trip_place_id}}\",\n    \"starts_at\": \"2027-03-10T10:00:00Z\",\n    \"notes\": \"Check in and explore nearby.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    const itinerary_item_id = json[\"data\"][\"id\"];",
+                                    "    if (itinerary_item_id !== undefined && itinerary_item_id !== null) {",
+                                    "        pm.collectionVariables.set(\"itinerary_item_id\", String(itinerary_item_id));",
+                                    "    }",
+                                    "    const trip_version = json[\"meta\"][\"trip_version\"];",
+                                    "    if (trip_version !== undefined && trip_version !== null) {",
+                                    "        pm.collectionVariables.set(\"trip_version\", String(trip_version));",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Update Itinerary Item",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/itinerary/items/{{itinerary_item_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "itinerary",
+                                "items",
+                                "{{itinerary_item_id}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"starts_at\": \"2027-03-10T11:00:00Z\",\n    \"ends_at\": \"2027-03-10T13:00:00Z\",\n    \"notes\": \"Adjusted timing from Postman.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Itinerary Item",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/itinerary/items/{{itinerary_item_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "itinerary",
+                                "items",
+                                "{{itinerary_item_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Generate Suggestions",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/suggestions/generate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "suggestions",
+                                "generate"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"limit\": 3,\n    \"force_refresh\": false\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    const suggestion_id = json[\"data\"][0][\"id\"];",
+                                    "    if (suggestion_id !== undefined && suggestion_id !== null) {",
+                                    "        pm.collectionVariables.set(\"suggestion_id\", String(suggestion_id));",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ],
+            "description": "Owner-only trip mutation, planning, and collaboration actions."
+        },
+        {
+            "name": "Editor",
+            "item": [
+                {
+                    "name": "Add Trip Pool Place",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/pool",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "pool"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"saved_place_id\": \"{{saved_place_id}}\",\n    \"trip_category\": \"activity\",\n    \"notes\": \"Great sunset option\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    const trip_place_id = json[\"data\"][\"id\"];",
+                                    "    if (trip_place_id !== undefined && trip_place_id !== null) {",
+                                    "        pm.collectionVariables.set(\"trip_place_id\", String(trip_place_id));",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Update Trip Pool Place",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/pool/{{trip_place_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "pool",
+                                "{{trip_place_id}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"trip_category\": \"restaurant\",\n    \"notes\": \"Updated pool note from Postman.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Trip Pool Place",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/pool/{{trip_place_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "pool",
+                                "{{trip_place_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Heart Trip Pool Place",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/pool/{{trip_place_id}}/heart",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "pool",
+                                "{{trip_place_id}}",
+                                "heart"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Unheart Trip Pool Place",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/pool/{{trip_place_id}}/heart",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "pool",
+                                "{{trip_place_id}}",
+                                "heart"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Generate Suggestions",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/suggestions/generate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "suggestions",
+                                "generate"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"limit\": 3,\n    \"force_refresh\": false\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    const suggestion_id = json[\"data\"][0][\"id\"];",
+                                    "    if (suggestion_id !== undefined && suggestion_id !== null) {",
+                                    "        pm.collectionVariables.set(\"suggestion_id\", String(suggestion_id));",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Add Suggestion To Pool",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/suggestions/{{suggestion_id}}/add",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "suggestions",
+                                "{{suggestion_id}}",
+                                "add"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Dismiss Suggestion",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/suggestions/{{suggestion_id}}/dismiss",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "suggestions",
+                                "{{suggestion_id}}",
+                                "dismiss"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Editor-capable trip contribution and suggestion-management actions."
+        },
+        {
+            "name": "Viewer",
+            "item": [
+                {
+                    "name": "Show Trip",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List Trip Pool",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/pool",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "pool"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Show AI Itinerary",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/ai-itinerary",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "ai-itinerary"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List Itinerary",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/itinerary",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "itinerary"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List Suggestions",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/suggestions",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "suggestions"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Trip Balance",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/balance",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "balance"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Viewer-safe read-only trip APIs."
+        },
+        {
+            "name": "Manage Members (Owner)",
+            "item": [
+                {
+                    "name": "Update Trip Member",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/members/{{member_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "members",
+                                "{{member_id}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"role\": \"viewer\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Trip Member",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/trips/{{trip_id}}/members/{{member_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "trips",
+                                "{{trip_id}}",
+                                "members",
+                                "{{member_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Owner-only member management APIs."
+        }
+    ]
+}
