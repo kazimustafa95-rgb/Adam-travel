@@ -1,0 +1,777 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+		"name": "Location Intelligence API v2",
+		"description": "Standalone Google-powered intelligent location detection API.\n\nEndpoint: POST /api/v2/location-intelligence/resolve\n\nSupports four input types:\n1. Plain text (place name / search query)\n2. Image URL (Google Vision — landmark, OCR, label detection)\n3. Video URL (YouTube/Vimeo via thumbnail + Vision; direct .mp4 via Video Intelligence API)\n4. Social/blog/public post URL (Open Graph scraping + Vision on og:image)\n\nBase URL variable: {{base_url}} — set this to your server, e.g. http://localhost:8000",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string",
+			"description": "Change this to your Laravel app URL"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Text Input",
+			"item": [
+				{
+					"name": "Plain place name",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"Lucky One Mall Karachi\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "Sends a plain-text place name.\nDetected type → text\nFlow: Google Places Text Search API"
+					},
+					"response": [
+						{
+							"name": "200 Success - Place Found",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{"key": "Content-Type", "value": "application/json"},
+									{"key": "Accept", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"input\": \"Lucky One Mall Karachi\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v2", "location-intelligence", "resolve"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"body": "{\n    \"success\": true,\n    \"type\": \"text\",\n    \"resolved_place\": {\n        \"id\": \"ChIJXxxxxxxxxxxxxxx\",\n        \"name\": \"LuckyOne Mall\",\n        \"address\": \"Gulshan-e-Iqbal, Karachi, Karachi City, Sindh, Pakistan\",\n        \"lat\": 24.9321,\n        \"lng\": 67.1023,\n        \"confidence\": 90\n    },\n    \"signals\": {\n        \"query\": \"Lucky One Mall Karachi\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "City or landmark",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"Eiffel Tower Paris\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "A well-known landmark resolved via Places Text Search."
+					},
+					"response": []
+				},
+				{
+					"name": "Restaurant / hotel name",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"Marriott Hotel Islamabad\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Image URL Input",
+			"item": [
+				{
+					"name": "Wikimedia landmark image",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Camponotus_flavomarginatus_ant.jpg/640px-Camponotus_flavomarginatus_ant.jpg\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "Public .jpg URL → detected as image.\nFlow: Google Vision API (landmark + OCR + label) → Google Places."
+					},
+					"response": []
+				},
+				{
+					"name": "Google Street View / Maps image URL",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Empire_State_Building_%28aerial_view%29.jpg/800px-Empire_State_Building_%28aerial_view%29.jpg\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "Landmark image (Empire State Building) — Vision should detect landmark and resolve via Places."
+					},
+					"response": [
+						{
+							"name": "200 Success - Landmark Detected",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{"key": "Content-Type", "value": "application/json"},
+									{"key": "Accept", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"input\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Empire_State_Building_%28aerial_view%29.jpg/800px-Empire_State_Building_%28aerial_view%29.jpg\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v2", "location-intelligence", "resolve"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"body": "{\n    \"success\": true,\n    \"type\": \"image\",\n    \"resolved_place\": {\n        \"id\": \"ChIJaXxxxxxxxxxxxxxx\",\n        \"name\": \"Empire State Building\",\n        \"address\": \"20 W 34th St., New York, NY 10001, USA\",\n        \"lat\": 40.7484,\n        \"lng\": -73.9857,\n        \"confidence\": 95\n    },\n    \"signals\": {\n        \"landmarks\": [\n            {\"name\": \"Empire State Building\", \"confidence\": 95}\n        ],\n        \"ocr_text\": [],\n        \"labels\": [\n            {\"name\": \"Skyscraper\", \"confidence\": 98},\n            {\"name\": \"Metropolitan area\", \"confidence\": 90}\n        ]\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "PNG image with visible text / signage",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Taj_Mahal_in_March_2004.jpg/800px-Taj_Mahal_in_March_2004.jpg\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "Taj Mahal image — strong landmark detection expected."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Video URL Input",
+			"item": [
+				{
+					"name": "YouTube video URL",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "YouTube URL → detected as video.\nFlow: YouTube thumbnail URL → Google Vision API → Google Places.\n(Video Intelligence API is NOT used for YouTube — thumbnail + metadata approach is used instead.)"
+					},
+					"response": [
+						{
+							"name": "200 Success - YouTube Video",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{"key": "Content-Type", "value": "application/json"},
+									{"key": "Accept", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"input\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v2", "location-intelligence", "resolve"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"body": "{\n    \"success\": true,\n    \"type\": \"video\",\n    \"resolved_place\": {\n        \"id\": \"ChIJxxxxxxxxxx\",\n        \"name\": \"Some Location\",\n        \"address\": \"Some Address\",\n        \"lat\": 0.0,\n        \"lng\": 0.0,\n        \"confidence\": 70\n    },\n    \"signals\": {\n        \"landmarks\": [],\n        \"labels\": [\n            {\"name\": \"Performance\", \"confidence\": 89}\n        ],\n        \"ocr_text\": []\n    },\n    \"metadata\": {\n        \"title\": \"Rick Astley - Never Gonna Give You Up (Official Music Video)\",\n        \"description\": \"The official video for Rick Astley...\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "YouTube Shorts URL",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"https://www.youtube.com/shorts/abc123xyz\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "YouTube Shorts URL — same flow as regular YouTube."
+					},
+					"response": []
+				},
+				{
+					"name": "youtu.be short URL",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"https://youtu.be/dQw4w9WgXcQ\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "Short YouTube URL format — same thumbnail + metadata flow."
+					},
+					"response": []
+				},
+				{
+					"name": "Vimeo video URL",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"https://vimeo.com/76979871\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "Vimeo URL → thumbnail fetched via Vimeo oEmbed API → Vision → Places."
+					},
+					"response": []
+				},
+				{
+					"name": "Direct MP4 video URL (Video Intelligence API)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"https://www.w3schools.com/html/mov_bbb.mp4\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "Direct .mp4 URL → detected as video.\nFlow: Download video → base64 encode → Google Video Intelligence API (label + text + shot detection) → poll for result → Google Places.\n\nNote: This may take 30–90 seconds due to Video Intelligence API processing time."
+					},
+					"response": [
+						{
+							"name": "200 Success - Direct Video",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{"key": "Content-Type", "value": "application/json"},
+									{"key": "Accept", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"input\": \"https://www.w3schools.com/html/mov_bbb.mp4\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v2", "location-intelligence", "resolve"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"body": "{\n    \"success\": true,\n    \"type\": \"video\",\n    \"resolved_place\": {\n        \"id\": \"ChIJxxxxxxxxxx\",\n        \"name\": \"Big Buck Bunny Location\",\n        \"address\": \"Some Address\",\n        \"lat\": 0.0,\n        \"lng\": 0.0,\n        \"confidence\": 65\n    },\n    \"signals\": {\n        \"landmarks\": [],\n        \"labels\": [\n            {\"name\": \"Animation\", \"confidence\": 97},\n            {\"name\": \"Nature\", \"confidence\": 85}\n        ],\n        \"ocr_text\": []\n    }\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "4. Social / Blog / Public Post URL Input",
+			"item": [
+				{
+					"name": "Instagram post URL",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"https://www.instagram.com/p/EXAMPLE_POST_ID/\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "Instagram post URL → detected as social.\nFlow: Scrape og:title, og:description, og:image → Vision on og:image → Places.\n\nNote: Instagram heavily restricts scraping. The Vision + Places fallback will still run on any image found."
+					},
+					"response": []
+				},
+				{
+					"name": "Facebook post URL",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"https://www.facebook.com/watch?v=EXAMPLE_VIDEO_ID\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "Facebook post / video URL → social type → OG meta scrape + Vision."
+					},
+					"response": []
+				},
+				{
+					"name": "TikTok video URL",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"https://www.tiktok.com/@user/video/1234567890\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "TikTok URL → detected as social (not video, since tiktok.com is in SOCIAL_DOMAINS).\nFlow: OG scrape → Vision on thumbnail → Places."
+					},
+					"response": []
+				},
+				{
+					"name": "Public blog / travel article URL",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"https://www.lonelyplanet.com/articles/best-things-to-do-in-paris\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "A public travel blog article → social/website type.\nFlow: Scrape og:title (\"Paris\") + og:image → Vision → Places."
+					},
+					"response": [
+						{
+							"name": "200 Success - Blog/Article",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{"key": "Content-Type", "value": "application/json"},
+									{"key": "Accept", "value": "application/json"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"input\": \"https://www.lonelyplanet.com/articles/best-things-to-do-in-paris\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v2", "location-intelligence", "resolve"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"body": "{\n    \"success\": true,\n    \"type\": \"social\",\n    \"resolved_place\": {\n        \"id\": \"ChIJD7fiBh9u5kcRYJSMaMOCCwQ\",\n        \"name\": \"Paris\",\n        \"address\": \"Paris, France\",\n        \"lat\": 48.8566,\n        \"lng\": 2.3522,\n        \"confidence\": 65\n    },\n    \"signals\": {\n        \"landmarks\": [\n            {\"name\": \"Eiffel Tower\", \"confidence\": 92}\n        ],\n        \"ocr_text\": [],\n        \"labels\": [\n            {\"name\": \"City\", \"confidence\": 88}\n        ]\n    },\n    \"metadata\": {\n        \"platform\": \"website\",\n        \"title\": \"Best things to do in Paris\",\n        \"description\": \"Discover the must-see attractions in Paris, France.\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Twitter / X post URL",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"https://x.com/NatGeo/status/1234567890\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "X (Twitter) post URL → social type → OG scrape + Vision."
+					},
+					"response": []
+				},
+				{
+					"name": "Medium / blog article URL",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"https://medium.com/travel-stories/exploring-dubai-marina\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "Medium post → social type. Title usually contains the location."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5. Validation & Error Cases",
+			"item": [
+				{
+					"name": "Missing input field",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "No input field → 422 Validation error."
+					},
+					"response": [
+						{
+							"name": "422 Validation Error",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{"key": "Content-Type", "value": "application/json"},
+									{"key": "Accept", "value": "application/json"}
+								],
+								"body": {"mode": "raw", "raw": "{}"},
+								"url": {
+									"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v2", "location-intelligence", "resolve"]
+								}
+							},
+							"status": "Unprocessable Entity",
+							"code": 422,
+							"_postman_previewlanguage": "json",
+							"body": "{\n    \"success\": false,\n    \"message\": \"Validation failed.\",\n    \"data\": null,\n    \"meta\": [],\n    \"errors\": {\n        \"input\": [\n            \"An input value (text, image URL, video URL, or social URL) is required.\"\n        ]\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Input too short (1 char)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"A\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "Input under 2 chars → 422 min length error."
+					},
+					"response": []
+				},
+				{
+					"name": "Localhost URL blocked",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"http://localhost/admin\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "Localhost URL → blocked by URL safety guard → 422."
+					},
+					"response": [
+						{
+							"name": "422 Blocked - Localhost",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{"key": "Content-Type", "value": "application/json"},
+									{"key": "Accept", "value": "application/json"}
+								],
+								"body": {"mode": "raw", "raw": "{\n    \"input\": \"http://localhost/admin\"\n}"},
+								"url": {
+									"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v2", "location-intelligence", "resolve"]
+								}
+							},
+							"status": "Unprocessable Entity",
+							"code": 422,
+							"_postman_previewlanguage": "json",
+							"body": "{\n    \"success\": false,\n    \"message\": \"Access to local or private addresses is not allowed.\",\n    \"errors\": {\n        \"input\": [\n            \"The URL must point to a publicly accessible resource.\"\n        ]\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Private IP address blocked",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"http://192.168.1.1/secret\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "Private IP (192.168.x.x) → blocked by URL safety guard → 422."
+					},
+					"response": [
+						{
+							"name": "422 Blocked - Private IP",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{"key": "Content-Type", "value": "application/json"},
+									{"key": "Accept", "value": "application/json"}
+								],
+								"body": {"mode": "raw", "raw": "{\n    \"input\": \"http://192.168.1.1/secret\"\n}"},
+								"url": {
+									"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v2", "location-intelligence", "resolve"]
+								}
+							},
+							"status": "Unprocessable Entity",
+							"code": 422,
+							"_postman_previewlanguage": "json",
+							"body": "{\n    \"success\": false,\n    \"message\": \"Access to private or reserved IP addresses is not allowed.\",\n    \"errors\": {\n        \"input\": [\n            \"The URL must not point to a private or reserved IP address.\"\n        ]\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Non-HTTP scheme blocked",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Accept", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"input\": \"ftp://files.example.com/photo.jpg\"\n}",
+							"options": {
+								"raw": {"language": "json"}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "ftp:// scheme → blocked by URL safety guard → 422."
+					},
+					"response": []
+				},
+				{
+					"name": "GET method not allowed",
+					"request": {
+						"method": "GET",
+						"header": [
+							{"key": "Accept", "value": "application/json"}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v2/location-intelligence/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v2", "location-intelligence", "resolve"]
+						},
+						"description": "Only POST is accepted → 405 Method Not Allowed."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
