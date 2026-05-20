@@ -33,7 +33,7 @@ class LocationSuggestionsService
         $userContent = [
             [
                 'type' => 'text',
-                'text' => "Find multiple possible/similar real-world places from this input.\n\nUser Input:\n{$trimmedValue}\n\nInput Type:\n".($isUrl ? 'URL' : 'Text/Search Query')."\n\nPlatform:\n{$metadata['platform']}\n\nTitle:\n{$metadata['title']}\n\nDescription:\n{$metadata['description']}\n\nPage Text:\n{$metadata['pageText']}\n\nTask:\nReturn 5 possible place recommendations.\n\nExample:\nIf input is \"lucky one mall\", return places like:\n- LuckyOne Mall, Karachi\n- Dolmen Mall Clifton, Karachi\n- Ocean Mall, Karachi\n- Millennium Mall, Karachi\n- Atrium Mall, Karachi\n\nRules:\n- First item should be the most likely exact match.\n- If title or description contains a clear hotel, resort, mall, restaurant, landmark, or destination name, use it as the first result.\n- Other items should be similar nearby or same-category places.\n- Prefer exact POI names: mall, restaurant, beach, park, hotel, resort, landmark.\n- Do not return social media headquarters.\n- Do not return \"Unknown\".\n- Do not invent coordinates. Use lat/lng as 0 until Google Places is enabled.\n- Confidence must be a percentage string like \"95%\", \"80%\", or \"45%\".\n- Keep confidence realistic.",
+                'text' => "Analyze this content and identify all real-world locations directly supported by the evidence.\n\nUser Input:\n{$trimmedValue}\n\nInput Type:\n".($isUrl ? 'URL' : 'Text/Search Query')."\n\nPlatform:\n{$metadata['platform']}\n\nTitle:\n{$metadata['title']}\n\nDescription:\n{$metadata['description']}\n\nPage Text (extracted):\n{$metadata['pageText']}\n\nTask:\nExtract every location that has direct evidence in the title, description, image, captions, hashtags, or page text. Return only places directly supported by the evidence — not alternatives, not parent cities of an already-identified venue, not invented locations. If no real location can be identified, return an empty places array.",
             ],
         ];
 
@@ -51,7 +51,16 @@ class LocationSuggestionsService
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'You are an AI location recommendation assistant.
+                    'content' => 'You are a professional AI location analyst. Your job is to identify real-world locations from social media content, URLs, images, text, captions, hashtags, and metadata.
+
+When an image is provided, analyze it thoroughly for location evidence:
+- Architecture style (traditional, modern, colonial, vernacular)
+- Geographic features (mountains, beaches, deserts, forests, rivers)
+- Visible road signs, shop signs, banners, or text in the image
+- Language of any visible text or signage
+- Vegetation and climate indicators
+- Iconic landmarks or recognizable structures
+- Cultural symbols, clothing styles, or vehicle types
 
 Return only valid JSON in this exact structure:
 
@@ -64,23 +73,70 @@ Return only valid JSON in this exact structure:
       "city": "string",
       "country": "string",
       "confidence": "string",
-      "lat": number,
-      "lng": number,
+      "lat": 0,
+      "lng": 0,
       "reason": "string"
     }
   ]
 }
 
-Important:
-1. Return 3 to 5 places.
-2. First place must be the most likely exact match from the input, title, or description.
-3. Other places should be similar recommendations.
-4. Prefer nearby/same-city/same-category places when possible.
-5. Confidence must always be a percentage string, for example "95%".
-6. If coordinates are not verified from Google Places, set lat and lng to 0.
-7. Never return Facebook, Instagram, YouTube, TikTok, Meta, Google, Twitter/X, or any platform headquarters.
-8. Never return Unknown.
-9. Do not make fake exact coordinates.',
+Core rule:
+The places array must contain ONLY the real locations directly supported by the input.
+Do not force a fixed number of results.
+Return 0, 1, or multiple places depending on the evidence.
+
+When to return 1 place:
+- The input points to one exact venue, landmark, attraction, hotel, restaurant, mall, beach, park, city, or country.
+- The input contains one specific location plus its parent city/town/country — in this case return only the most specific place.
+
+Example:
+Input: "The Land of Legends Antalya"
+Correct:
+[{"place": "The Land of Legends Theme Park", "category": "Theme Park", "city": "Antalya", "country": "Turkey", "confidence": "90%", "lat": 0, "lng": 0, "reason": "Text explicitly mentions The Land of Legends Antalya, a known theme park."}]
+WRONG: also returning Antalya, Belek, or Turkey as separate entries.
+
+When to return multiple places:
+Return multiple places ONLY if the input directly contains multiple separate real-world locations.
+
+Evidence for multiple places:
+- Several venue names in the caption or title.
+- A travel itinerary with different stops.
+- Multiple landmarks visible in the image at different locations.
+- Text like "Istanbul, Cappadocia and Antalya trip".
+- Caption or title clearly mentioning more than one destination.
+
+Example:
+Input: "Turkey trip: Istanbul, Cappadocia, Antalya"
+Correct: return 3 places — Istanbul, Cappadocia, Antalya.
+
+Example:
+Input: "Visited Eiffel Tower and Louvre Museum today"
+Correct: return 2 places — Eiffel Tower, Louvre Museum.
+
+What NOT to do:
+- Do not add nearby alternatives or similar attractions.
+- Do not add the parent city or country if a specific venue is already found.
+- Do not return social media platform headquarters (Facebook, Instagram, YouTube, TikTok, X/Twitter, Meta, Google).
+- Do not return "Unknown".
+- Do not invent locations.
+
+Confidence rules:
+- Exact venue or landmark directly mentioned: 80% to 95%.
+- City or country directly mentioned only: 60% to 85%.
+- Weak visual or hashtag-only clue: 20% to 50%.
+- If confidence would be below 20% for all candidates, return an empty places array.
+
+Reason rules:
+Each reason must cite specific evidence from the input: title text, caption words, hashtags, visible signage, landmark features, metadata, or image details. Never use vague statements.
+
+Coordinates: always set lat and lng to 0.
+
+Final decision process:
+1. Extract all location evidence from title, description, captions, hashtags, image, and page text.
+2. If one exact place is identified, return only that place.
+3. If multiple genuinely separate places are identified, return each one.
+4. Remove any generic parent place (city, country) when it only describes an already-returned specific venue.
+5. Return an empty places array if no real location is supported by the evidence.',
                 ],
                 [
                     'role' => 'user',
@@ -90,7 +146,7 @@ Important:
             'response_format' => [
                 'type' => 'json_object',
             ],
-            'temperature' => 0.4,
+            'temperature' => 0.1,
         ]);
 
         if (! $response->successful()) {
@@ -113,7 +169,9 @@ Important:
         return [
             'query' => (string) ($parsedResult['query'] ?? $trimmedValue),
             'places' => $this->enrichPlacesWithGoogleDetails(
-                $this->normalizePlaces($parsedResult['places'] ?? []),
+                $this->filterParentPlaces(
+                    $this->normalizePlaces($parsedResult['places'] ?? []),
+                ),
             ),
             'metadata' => $metadata,
         ];
@@ -138,6 +196,21 @@ Important:
             return $metadata;
         }
 
+        // Use oEmbed for platforms that support it — more reliable than HTML scraping
+        if (in_array($platform, ['youtube', 'tiktok'], true)) {
+            $oembed = $this->fetchOembedData($input, $platform);
+
+            if ($oembed !== []) {
+                $metadata['title'] = (string) ($oembed['title'] ?? '');
+                $authorName = (string) ($oembed['author_name'] ?? '');
+
+                if ($authorName !== '') {
+                    $metadata['description'] = 'By '.$authorName;
+                }
+            }
+        }
+
+        // YouTube: always use direct thumbnail (reliable, no auth required)
         if ($platform === 'youtube') {
             $videoId = $this->getYouTubeVideoId($input);
 
@@ -160,15 +233,24 @@ Important:
             }
 
             $html = (string) $response->body();
-            $metadata['title'] = $this->getMetaContent($html, 'og:title')
-                ?: $this->getMetaContent($html, 'twitter:title')
-                ?: $this->getTitleFromHtml($html);
-            $metadata['description'] = $this->getMetaContent($html, 'og:description')
-                ?: $this->getMetaContent($html, 'twitter:description')
-                ?: $this->getMetaContent($html, 'description');
+
+            // Only override oEmbed data with HTML data if oEmbed gave us nothing
+            if ($metadata['title'] === '') {
+                $metadata['title'] = $this->getMetaContent($html, 'og:title')
+                    ?: $this->getMetaContent($html, 'twitter:title')
+                    ?: $this->getTitleFromHtml($html);
+            }
+
+            if ($metadata['description'] === '') {
+                $metadata['description'] = $this->getMetaContent($html, 'og:description')
+                    ?: $this->getMetaContent($html, 'twitter:description')
+                    ?: $this->getMetaContent($html, 'description');
+            }
+
             $metadata['image'] = $metadata['image']
                 ?: $this->getMetaContent($html, 'og:image')
                 ?: $this->getMetaContent($html, 'twitter:image');
+
             $metadata['pageText'] = $this->decodeHtmlEntities((string) Str::of($html)
                 ->replaceMatches('/<script[\s\S]*?<\/script>/i', ' ')
                 ->replaceMatches('/<style[\s\S]*?<\/style>/i', ' ')
@@ -178,10 +260,39 @@ Important:
                 ->limit(2500, '')
                 ->value());
         } catch (\Throwable) {
-            $metadata['pageText'] = self::METADATA_FALLBACK;
+            if ($metadata['pageText'] === '') {
+                $metadata['pageText'] = self::METADATA_FALLBACK;
+            }
         }
 
         return $metadata;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function fetchOembedData(string $url, string $platform): array
+    {
+        $oembedUrl = match ($platform) {
+            'youtube' => 'https://www.youtube.com/oembed?url='.urlencode($url).'&format=json',
+            'tiktok' => 'https://www.tiktok.com/oembed?url='.urlencode($url),
+            default => null,
+        };
+
+        if ($oembedUrl === null) {
+            return [];
+        }
+
+        try {
+            $response = Http::timeout(8)->acceptJson()->get($oembedUrl);
+
+            if ($response->successful()) {
+                return (array) ($response->json() ?? []);
+            }
+        } catch (\Throwable) {
+        }
+
+        return [];
     }
 
     protected function detectPlatform(string $url): string
@@ -336,6 +447,80 @@ Important:
                 'reason' => (string) ($place['reason'] ?? ''),
             ];
         }, $places);
+    }
+
+    /**
+     * Remove generic parent places (city, country, region) when a more specific
+     * venue at that same city/country is already in the list.
+     *
+     * Example: ["The Land of Legends Theme Park" (city=Antalya), "Antalya" (category=City)]
+     * → removes "Antalya" because it is only the parent of the theme park.
+     *
+     * Genuine multi-city itineraries are kept because no entry is a child of another.
+     *
+     * @param  list<array<string, mixed>>  $places
+     * @return list<array<string, mixed>>
+     */
+    protected function filterParentPlaces(array $places): array
+    {
+        if (count($places) <= 1) {
+            return $places;
+        }
+
+        $genericCategories = [
+            'city', 'town', 'country', 'region', 'province',
+            'state', 'district', 'area',
+        ];
+
+        $specificCategories = [
+            'theme park', 'landmark', 'hotel', 'restaurant', 'museum',
+            'mall', 'beach', 'resort', 'attraction', 'park', 'cafe',
+            'monument', 'airport', 'valley', 'lake', 'waterfall',
+            'fort', 'castle', 'temple', 'mosque', 'church',
+        ];
+
+        $hasSpecificPlace = collect($places)->contains(
+            fn (array $p): bool => in_array(
+                strtolower(trim($p['category'] ?? '')),
+                $specificCategories,
+                true,
+            ),
+        );
+
+        if (! $hasSpecificPlace) {
+            return $places;
+        }
+
+        return array_values(array_filter($places, function (array $place) use ($places, $genericCategories, $specificCategories): bool {
+            $category = strtolower(trim($place['category'] ?? ''));
+
+            if (! in_array($category, $genericCategories, true)) {
+                return true;
+            }
+
+            $placeName = strtolower(trim($place['place'] ?? ''));
+
+            foreach ($places as $other) {
+                if ($other === $place) {
+                    continue;
+                }
+
+                $otherCategory = strtolower(trim($other['category'] ?? ''));
+
+                if (! in_array($otherCategory, $specificCategories, true)) {
+                    continue;
+                }
+
+                $otherCity = strtolower(trim($other['city'] ?? ''));
+                $otherCountry = strtolower(trim($other['country'] ?? ''));
+
+                if ($placeName !== '' && ($otherCity === $placeName || $otherCountry === $placeName)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
     }
 
     protected function decodeHtmlEntities(string $text = ''): string
