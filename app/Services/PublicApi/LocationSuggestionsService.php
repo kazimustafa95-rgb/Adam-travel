@@ -37,7 +37,13 @@ class LocationSuggestionsService
             ],
         ];
 
-        if ($this->canSendImageToOpenAi((string) $metadata['image'])) {
+        // Prefer pre-downloaded base64 image (e.g. TikTok CDN thumbnails that OpenAI cannot fetch directly)
+        if (! empty($metadata['imageBase64'])) {
+            $userContent[] = [
+                'type' => 'image_url',
+                'image_url' => ['url' => (string) $metadata['imageBase64']],
+            ];
+        } elseif ($this->canSendImageToOpenAi((string) $metadata['image'])) {
             $userContent[] = [
                 'type' => 'image_url',
                 'image_url' => [
@@ -219,6 +225,20 @@ Final decision process:
                 if ($authorName !== '') {
                     $metadata['description'] = 'By '.$authorName;
                 }
+
+                // TikTok CDN thumbnails use signed expiring URLs that OpenAI cannot fetch.
+                // Download on our server and send as base64 so OpenAI can analyze the image.
+                if ($platform === 'tiktok') {
+                    $thumbnailUrl = (string) ($oembed['thumbnail_url'] ?? '');
+
+                    if ($thumbnailUrl !== '') {
+                        $base64 = $this->downloadImageAsBase64($thumbnailUrl);
+
+                        if ($base64 !== null) {
+                            $metadata['imageBase64'] = $base64;
+                        }
+                    }
+                }
             }
         }
 
@@ -305,6 +325,37 @@ Final decision process:
         }
 
         return [];
+    }
+
+    /**
+     * Download an image URL on our server and return it as a base64 data URI.
+     * Used for CDN-protected images (e.g. TikTok signed URLs) that OpenAI cannot fetch directly.
+     * Returns null if the download fails or the response is not an image.
+     */
+    protected function downloadImageAsBase64(string $url): ?string
+    {
+        try {
+            $response = Http::timeout(8)
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148',
+                    'Referer' => 'https://www.tiktok.com/',
+                ])
+                ->get($url);
+
+            if (! $response->successful()) {
+                return null;
+            }
+
+            $contentType = strtolower(explode(';', $response->header('Content-Type') ?? '')[0]);
+
+            if (! str_starts_with($contentType, 'image/')) {
+                return null;
+            }
+
+            return 'data:'.$contentType.';base64,'.base64_encode($response->body());
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     protected function detectPlatform(string $url): string
