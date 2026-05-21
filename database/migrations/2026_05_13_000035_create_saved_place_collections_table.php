@@ -64,10 +64,35 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('saved_places', function (Blueprint $table): void {
-            $table->dropConstrainedForeignId('saved_place_collection_id');
-        });
+        if (Schema::hasTable('saved_places')) {
+            $this->dropForeignKeyIfExists('saved_places', 'saved_place_collection_id');
+
+            Schema::table('saved_places', function (Blueprint $table): void {
+                if (Schema::hasColumn('saved_places', 'saved_place_collection_id')) {
+                    $table->dropColumn('saved_place_collection_id');
+                }
+            });
+        }
 
         Schema::dropIfExists('saved_place_collections');
+    }
+
+    protected function dropForeignKeyIfExists(string $table, string $column): void
+    {
+        $constraint = DB::table('information_schema.KEY_COLUMN_USAGE')
+            ->select('CONSTRAINT_NAME')
+            ->where('TABLE_SCHEMA', DB::getDatabaseName())
+            ->where('TABLE_NAME', $table)
+            ->where('COLUMN_NAME', $column)
+            ->whereNotNull('REFERENCED_TABLE_NAME')
+            ->value('CONSTRAINT_NAME');
+
+        if ($constraint) {
+            DB::statement(sprintf(
+                'ALTER TABLE `%s` DROP FOREIGN KEY `%s`',
+                $table,
+                $constraint,
+            ));
+        }
     }
 };
