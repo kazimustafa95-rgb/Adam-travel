@@ -96,14 +96,12 @@ Correct:
 WRONG: also returning Antalya, Belek, or Turkey as separate entries.
 
 When to return multiple places:
-Return multiple places ONLY if the input directly contains multiple separate real-world locations.
-
-Evidence for multiple places:
-- Several venue names in the caption or title.
-- A travel itinerary with different stops.
-- Multiple landmarks visible in the image at different locations.
-- Text like "Istanbul, Cappadocia and Antalya trip".
-- Caption or title clearly mentioning more than one destination.
+Return multiple places when any of the following is true:
+- Several venue names appear in the caption, title, or hashtags.
+- A travel itinerary with different stops is described.
+- Multiple landmarks are visible in the image at different locations.
+- Text like "Istanbul, Cappadocia and Antalya trip" mentions more than one destination.
+- The title explicitly states a count of places (e.g. "3 Most Beautiful Places", "Top 5 Destinations", "7 Hidden Gems").
 
 Example:
 Input: "Turkey trip: Istanbul, Cappadocia, Antalya"
@@ -113,12 +111,25 @@ Example:
 Input: "Visited Eiffel Tower and Louvre Museum today"
 Correct: return 2 places — Eiffel Tower, Louvre Museum.
 
+Special rule — count-based titles:
+When the title or caption explicitly states a number of places (e.g. "3 Most Beautiful Places in China", "Top 5 Places to Visit in Japan") AND the content is about a specific country or region, do the following:
+1. First identify every place directly named in the title, hashtags, captions, or image.
+2. If the number of identified places is less than the stated count, fill the remaining slots with the most famous, well-known real places that fit the established country/region/theme of the content.
+3. Mark directly identified places with confidence 75%–95%.
+4. Mark contextually inferred places with confidence 30%–60% and clearly state in the reason that they are inferred from the video theme and geography, not directly named.
+5. Never exceed the count stated in the title.
+
+Example:
+Title: "3 Most Beautiful Places 🥰 #heavengatechina #china"
+- Heaven's Gate is directly confirmed by hashtag → confidence 85%
+- 2 more places must be identified → infer top beautiful places in China → e.g. Zhangjiajie National Forest, Li River (Guilin) → confidence 45%
+
 What NOT to do:
-- Do not add nearby alternatives or similar attractions.
 - Do not add the parent city or country if a specific venue is already found.
 - Do not return social media platform headquarters (Facebook, Instagram, YouTube, TikTok, X/Twitter, Meta, Google).
 - Do not return "Unknown".
-- Do not invent locations.
+- Do not exceed the count stated in a count-based title.
+- Do not invent fictional places — only suggest real, well-known locations.
 
 Confidence rules:
 - Exact venue or landmark directly mentioned: 80% to 95%.
@@ -133,8 +144,9 @@ Coordinates: always set lat and lng to 0.
 
 Final decision process:
 1. Extract all location evidence from title, description, captions, hashtags, image, and page text.
-2. If one exact place is identified, return only that place.
-3. If multiple genuinely separate places are identified, return each one.
+2. Check if the title explicitly states a count of places (e.g. "3 Most Beautiful", "Top 5"). If yes, apply the count-based title rule above.
+3. If one exact place is identified (no count in title), return only that place.
+4. If multiple genuinely separate places are identified, return each one.
 4. Remove any generic parent place (city, country) when it only describes an already-returned specific venue.
 5. Return an empty places array if no real location is supported by the evidence.',
                 ],
