@@ -121,8 +121,8 @@ When the title or caption explicitly states a number of places (e.g. "3 Most Bea
 
 Example:
 Title: "3 Most Beautiful Places 🥰 #heavengatechina #china"
-- Heaven's Gate is directly confirmed by hashtag → confidence 85%
-- 2 more places must be identified → infer top beautiful places in China → e.g. Zhangjiajie National Forest, Li River (Guilin) → confidence 45%
+- Heaven\'s Gate is directly confirmed by hashtag -> confidence 85%
+- 2 more places must be identified -> infer top beautiful places in China -> e.g. Zhangjiajie National Forest, Li River (Guilin) -> confidence 45%
 
 What NOT to do:
 - Do not add the parent city or country if a specific venue is already found.
