@@ -43,7 +43,9 @@ class LocationSuggestionsService
             'query' => (string) ($parsedResult['query'] ?? $trimmedValue),
             'places' => $this->enrichPlacesWithGoogleDetails(
                 $this->filterParentPlaces(
-                    $this->normalizePlaces($parsedResult['places'] ?? []),
+                    $this->deduplicatePlaces(
+                        $this->normalizePlaces($parsedResult['places'] ?? []),
+                    ),
                 ),
             ),
             'metadata' => $evidence->toResponseMetadata(),
@@ -81,27 +83,36 @@ class LocationSuggestionsService
      */
     protected function enrichPlaceWithGoogleDetails(array $place): array
     {
-        $lookupQuery = collect([
-            $place['place'] ?? '',
-            $place['city'] ?? '',
-            $place['country'] ?? '',
-        ])
-            ->filter(fn (mixed $value): bool => is_string($value) && trim($value) !== '')
-            ->implode(', ');
+        $lookupQueries = $this->buildLookupQueries($place);
 
-        if ($lookupQuery === '') {
+        if ($lookupQueries === []) {
             $place['google_place_details'] = null;
 
             return $place;
         }
 
         try {
-            $googlePlaceDetails = $this->googlePlaceDetailsService->getMinimalLocationDetail(
-                placeQuery: $lookupQuery,
-                regionCode: $this->resolveRegionCode($place['country'] ?? null),
-            );
+            $googlePlaceDetails = null;
 
-            if (! $this->googlePlaceMatchValidator->matches($place, $googlePlaceDetails)) {
+            foreach ($lookupQueries as $lookupQuery) {
+                try {
+                    $googlePlaceDetailsCandidates = $this->googlePlaceDetailsService->searchMinimalLocationDetails(
+                        placeQuery: $lookupQuery,
+                        regionCode: $this->resolveRegionCode($place['country'] ?? null),
+                    );
+                } catch (PublicApiException) {
+                    continue;
+                }
+
+                $googlePlaceDetails = collect($googlePlaceDetailsCandidates)
+                    ->first(fn (array $candidate): bool => $this->googlePlaceMatchValidator->matches($place, $candidate));
+
+                if (is_array($googlePlaceDetails)) {
+                    break;
+                }
+            }
+
+            if (! is_array($googlePlaceDetails)) {
                 $place['google_place_details'] = null;
 
                 return $place;
@@ -146,6 +157,55 @@ class LocationSuggestionsService
                 'reason' => (string) ($place['reason'] ?? ''),
             ];
         }, $places);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $places
+     * @return list<array<string, mixed>>
+     */
+    protected function deduplicatePlaces(array $places): array
+    {
+        $deduplicated = [];
+
+        foreach ($places as $place) {
+            $key = $this->deduplicationKey($place);
+
+            if ($key === '') {
+                $deduplicated[] = $place;
+
+                continue;
+            }
+
+            if (! isset($deduplicated[$key])) {
+                $deduplicated[$key] = $place;
+
+                continue;
+            }
+
+            $deduplicated[$key] = $this->mergeDuplicatePlaces($deduplicated[$key], $place);
+        }
+
+        return array_values($deduplicated);
+    }
+
+    /**
+     * @param  array<string, mixed>  $place
+     * @return list<string>
+     */
+    protected function buildLookupQueries(array $place): array
+    {
+        $placeName = trim((string) ($place['place'] ?? ''));
+        $city = trim((string) ($place['city'] ?? ''));
+        $country = trim((string) ($place['country'] ?? ''));
+
+        $queries = [
+            $this->implodeQuerySegments([$placeName, $city, $country]),
+            $this->implodeQuerySegments([$placeName, $country]),
+            $this->implodeQuerySegments([$placeName, $city]),
+            $placeName,
+        ];
+
+        return array_values(array_unique(array_filter($queries, fn (string $query): bool => $query !== '')));
     }
 
     /**
@@ -226,5 +286,125 @@ class LocationSuggestionsService
         $country = strtoupper(trim($country));
 
         return strlen($country) === 2 ? $country : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $place
+     */
+    protected function deduplicationKey(array $place): string
+    {
+        $segments = [
+            $this->normalizePlaceName((string) ($place['place'] ?? '')),
+            $this->normalizeBasicText((string) ($place['category'] ?? '')),
+            $this->normalizeBasicText((string) ($place['city'] ?? '')),
+            $this->normalizeBasicText((string) ($place['country'] ?? '')),
+        ];
+
+        if ($segments[0] === '') {
+            return '';
+        }
+
+        return implode('|', $segments);
+    }
+
+    /**
+     * @param  array<string, mixed>  $existingPlace
+     * @param  array<string, mixed>  $incomingPlace
+     * @return array<string, mixed>
+     */
+    protected function mergeDuplicatePlaces(array $existingPlace, array $incomingPlace): array
+    {
+        $existingConfidence = $this->confidenceScore($existingPlace['confidence'] ?? null);
+        $incomingConfidence = $this->confidenceScore($incomingPlace['confidence'] ?? null);
+
+        $preferredPlace = $existingPlace;
+        $secondaryPlace = $incomingPlace;
+
+        if ($incomingConfidence > $existingConfidence) {
+            $preferredPlace = $incomingPlace;
+            $secondaryPlace = $existingPlace;
+        } elseif ($incomingConfidence === $existingConfidence && strlen((string) ($incomingPlace['place'] ?? '')) > strlen((string) ($existingPlace['place'] ?? ''))) {
+            $preferredPlace = $incomingPlace;
+            $secondaryPlace = $existingPlace;
+        }
+
+        if (($preferredPlace['reason'] ?? '') === '' && ($secondaryPlace['reason'] ?? '') !== '') {
+            $preferredPlace['reason'] = $secondaryPlace['reason'];
+        }
+
+        $canonicalPlaceName = $this->preferredCanonicalPlaceName(
+            (string) ($existingPlace['place'] ?? ''),
+            (string) ($incomingPlace['place'] ?? ''),
+        );
+
+        if ($canonicalPlaceName !== '') {
+            $preferredPlace['place'] = $canonicalPlaceName;
+        }
+
+        return $preferredPlace;
+    }
+
+    /**
+     * @param  list<string>  $segments
+     */
+    protected function implodeQuerySegments(array $segments): string
+    {
+        return collect($segments)
+            ->map(fn (string $segment): string => trim($segment))
+            ->filter(fn (string $segment): bool => $segment !== '')
+            ->implode(', ');
+    }
+
+    protected function preferredCanonicalPlaceName(string $first, string $second): string
+    {
+        $first = trim($first);
+        $second = trim($second);
+
+        if ($first === '') {
+            return $second;
+        }
+
+        if ($second === '') {
+            return $first;
+        }
+
+        $firstNormalized = $this->normalizePlaceName($first);
+        $secondNormalized = $this->normalizePlaceName($second);
+
+        if ($firstNormalized !== '' && $firstNormalized === $secondNormalized) {
+            return strlen($second) > strlen($first) ? $second : $first;
+        }
+
+        return strlen($second) > strlen($first) ? $second : $first;
+    }
+
+    protected function normalizePlaceName(string $value): string
+    {
+        $value = strtolower(trim($value));
+        $value = preg_replace("/'s\b/", '', $value) ?? $value;
+        $value = preg_replace('/[^a-z0-9\s]/', ' ', $value) ?? $value;
+
+        return trim(preg_replace('/\s+/', ' ', $value) ?? $value);
+    }
+
+    protected function normalizeBasicText(string $value): string
+    {
+        $value = strtolower(trim($value));
+        $value = preg_replace('/[^a-z0-9\s]/', ' ', $value) ?? $value;
+
+        return trim(preg_replace('/\s+/', ' ', $value) ?? $value);
+    }
+
+    protected function confidenceScore(mixed $confidence): int
+    {
+        if (! is_string($confidence) && ! is_numeric($confidence)) {
+            return 0;
+        }
+
+        if (preg_match('/(\d{1,3})/', (string) $confidence, $matches) !== 1 || ! isset($matches[1])) {
+            return 0;
+        }
+
+        return (int) $matches[1];
     }
 }

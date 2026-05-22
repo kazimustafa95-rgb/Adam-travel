@@ -28,32 +28,29 @@ class GooglePlaceDetailsService
      */
     public function getMinimalLocationDetail(string $placeQuery, ?string $regionCode = 'PK'): array
     {
-        $place = $this->searchPlace($placeQuery, $regionCode);
-        $photoName = data_get($place, 'photos.0.name');
-        $formattedAddress = (string) ($place['formattedAddress'] ?? '');
+        return $this->searchMinimalLocationDetails($placeQuery, $regionCode)[0];
+    }
 
-        return [
-            'id' => (string) ($place['id'] ?? ''),
-            'place' => (string) data_get($place, 'displayName.text', ''),
-            'shortAddress' => $this->deriveShortAddress($formattedAddress),
-            'image' => is_string($photoName) ? $this->getPlacePhotoUrl($photoName) : null,
-            'lat' => (float) data_get($place, 'location.latitude', 0),
-            'lng' => (float) data_get($place, 'location.longitude', 0),
-            'types' => is_array($place['types'] ?? null) ? $place['types'] : [],
-            'primaryType' => (string) ($place['primaryType'] ?? ''),
-            'primaryTypeDisplayName' => (string) data_get($place, 'primaryTypeDisplayName.text', ''),
-        ];
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function searchMinimalLocationDetails(string $placeQuery, ?string $regionCode = 'PK', int $limit = 5): array
+    {
+        return array_map(
+            fn (array $place): array => $this->mapMinimalSearchPlace($place),
+            array_slice($this->searchPlaces($placeQuery, $regionCode), 0, max(1, $limit)),
+        );
     }
 
     protected function searchPlaceId(string $placeQuery, ?string $regionCode = 'PK'): string
     {
-        return (string) ($this->searchPlace($placeQuery, $regionCode)['id'] ?? '');
+        return (string) ($this->searchPlaces($placeQuery, $regionCode)[0]['id'] ?? '');
     }
 
     /**
-     * @return array<string, mixed>
+     * @return list<array<string, mixed>>
      */
-    protected function searchPlace(string $placeQuery, ?string $regionCode = 'PK'): array
+    protected function searchPlaces(string $placeQuery, ?string $regionCode = 'PK'): array
     {
         $payload = [
             'textQuery' => $placeQuery,
@@ -70,15 +67,14 @@ class GooglePlaceDetailsService
             throw $this->googleException($response, 'Google place search failed.');
         }
 
-        /** @var array<string, mixed>|null $place */
-        $place = data_get($response->json(), 'places.0');
-        $placeId = $place['id'] ?? null;
+        /** @var list<array<string, mixed>> $places */
+        $places = data_get($response->json(), 'places', []);
 
-        if (! is_string($placeId) || $placeId === '') {
+        if ($places === []) {
             throw new PublicApiException('No place found from Google Places', 404);
         }
 
-        return $place;
+        return $places;
     }
 
     protected function deriveShortAddress(string $formattedAddress): string
@@ -94,6 +90,28 @@ class GooglePlaceDetailsService
         }
 
         return $parts[count($parts) - 1];
+    }
+
+    /**
+     * @param  array<string, mixed>  $place
+     * @return array<string, mixed>
+     */
+    protected function mapMinimalSearchPlace(array $place): array
+    {
+        $photoName = data_get($place, 'photos.0.name');
+        $formattedAddress = (string) ($place['formattedAddress'] ?? '');
+
+        return [
+            'id' => (string) ($place['id'] ?? ''),
+            'place' => (string) data_get($place, 'displayName.text', ''),
+            'shortAddress' => $this->deriveShortAddress($formattedAddress),
+            'image' => is_string($photoName) ? $this->getPlacePhotoUrl($photoName) : null,
+            'lat' => (float) data_get($place, 'location.latitude', 0),
+            'lng' => (float) data_get($place, 'location.longitude', 0),
+            'types' => is_array($place['types'] ?? null) ? $place['types'] : [],
+            'primaryType' => (string) ($place['primaryType'] ?? ''),
+            'primaryTypeDisplayName' => (string) data_get($place, 'primaryTypeDisplayName.text', ''),
+        ];
     }
 
     /**

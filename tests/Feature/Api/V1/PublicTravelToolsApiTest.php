@@ -815,6 +815,120 @@ class PublicTravelToolsApiTest extends TestCase
             ->assertJsonPath('data.places.0.google_place_details', null);
     }
 
+    public function test_public_location_suggestions_endpoint_deduplicates_similar_places_and_uses_later_google_match(): void
+    {
+        Config::set('services.openai.api_key', 'openai-test-key');
+        Config::set('services.openai.model', 'gpt-4o');
+        Config::set('services.google_places.api_key', 'google-test-key');
+
+        Http::fake(function (Request $request) {
+            $payload = $request->data();
+            $textQuery = is_array($payload) ? ($payload['textQuery'] ?? null) : null;
+
+            return match (true) {
+                $request->url() === 'https://example.com/heavens-gate-duplicate' => Http::response('
+                    <html>
+                        <head>
+                            <meta property="og:title" content="Heaven\'s Gate China" />
+                            <meta property="og:description" content="A scenic landmark in China." />
+                        </head>
+                        <body>
+                            Heaven\'s Gate in China.
+                        </body>
+                    </html>
+                '),
+                str_ends_with($request->url(), '/chat/completions') => Http::response([
+                    'choices' => [
+                        [
+                            'message' => [
+                                'content' => json_encode([
+                                    'query' => 'Heaven\'s Gate China',
+                                    'places' => [
+                                        [
+                                            'place' => 'Heaven Gate',
+                                            'category' => 'Natural Landmark',
+                                            'city' => 'Zhangjiajie',
+                                            'country' => 'China',
+                                            'confidence' => '90%',
+                                            'lat' => 0,
+                                            'lng' => 0,
+                                            'reason' => 'The frames mention Heaven Gate China.',
+                                        ],
+                                        [
+                                            'place' => 'Heaven\'s Gate',
+                                            'category' => 'Natural Landmark',
+                                            'city' => 'Zhangjiajie',
+                                            'country' => 'China',
+                                            'confidence' => '80%',
+                                            'lat' => 0,
+                                            'lng' => 0,
+                                            'reason' => 'The title identifies Heaven\'s Gate in China.',
+                                        ],
+                                    ],
+                                ], JSON_THROW_ON_ERROR),
+                            ],
+                        ],
+                    ],
+                ]),
+                str_ends_with($request->url(), '/places:searchText') && $textQuery === 'Heaven\'s Gate, Zhangjiajie, China' => Http::response([
+                    'places' => [
+                        [
+                            'id' => 'hotel_place_1',
+                            'displayName' => ['text' => 'Heaven Gate Hotel Zhangjiajie'],
+                            'formattedAddress' => 'Zhangjiajie, Hunan, China',
+                            'location' => [
+                                'latitude' => 29.3594,
+                                'longitude' => 110.4630,
+                            ],
+                            'photos' => [
+                                ['name' => 'places/hotel_place_1/photos/photo_1'],
+                            ],
+                            'types' => ['lodging', 'hotel'],
+                            'primaryType' => 'lodging',
+                            'primaryTypeDisplayName' => ['text' => 'Lodging'],
+                        ],
+                        [
+                            'id' => 'landmark_place_1',
+                            'displayName' => ['text' => 'Heaven\'s Gate'],
+                            'formattedAddress' => 'Tianmen Mountain, Zhangjiajie, Hunan, China',
+                            'location' => [
+                                'latitude' => 29.0522,
+                                'longitude' => 110.4786,
+                            ],
+                            'photos' => [
+                                ['name' => 'places/landmark_place_1/photos/photo_2'],
+                            ],
+                            'types' => ['tourist_attraction', 'point_of_interest'],
+                            'primaryType' => 'tourist_attraction',
+                            'primaryTypeDisplayName' => ['text' => 'Tourist attraction'],
+                        ],
+                    ],
+                ]),
+                str_contains($request->url(), '/hotel_place_1/photos/photo_1/media') => Http::response([
+                    'photoUri' => 'https://cdn.example.com/hotel.jpg',
+                ]),
+                str_contains($request->url(), '/landmark_place_1/photos/photo_2/media') => Http::response([
+                    'photoUri' => 'https://cdn.example.com/heavens-gate.jpg',
+                ]),
+                default => Http::response([], 404),
+            };
+        });
+
+        $this->postJson('/api/v1/public/location-suggestions', [
+            'input' => 'https://example.com/heavens-gate-duplicate',
+        ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'data.places')
+            ->assertJsonPath('data.places.0.place', 'Heaven\'s Gate')
+            ->assertJsonPath('data.places.0.confidence', '90%')
+            ->assertJsonPath('data.places.0.lat', 29.0522)
+            ->assertJsonPath('data.places.0.lng', 110.4786)
+            ->assertJsonPath('data.places.0.google_place_details.id', 'landmark_place_1')
+            ->assertJsonPath('data.places.0.google_place_details.place', 'Heaven\'s Gate')
+            ->assertJsonPath('data.places.0.google_place_details.image', 'https://cdn.example.com/heavens-gate.jpg');
+    }
+
     public function test_public_location_suggestions_endpoint_sends_multiple_page_images_to_openai(): void
     {
         Config::set('services.openai.api_key', 'openai-test-key');
