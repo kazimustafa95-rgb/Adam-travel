@@ -18,6 +18,7 @@ class LocationSuggestionsRequest extends BaseApiRequest
     {
         return [
             'input' => ['required', 'string', 'max:5000'],
+            'prefer_async' => ['sometimes', 'boolean'],
         ];
     }
 }

@@ -23,6 +23,8 @@ use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ProfileHomeController;
 use App\Http\Controllers\Api\V1\ProximityController;
 use App\Http\Controllers\Api\V1\PublicGooglePlaceDetailsController;
+use App\Http\Controllers\Api\V1\PublicAsyncLocationSuggestionsController;
+use App\Http\Controllers\Api\V1\PublicAsyncLocationSuggestionsStatusController;
 use App\Http\Controllers\Api\V1\PublicLocationSuggestionsController;
 use App\Http\Controllers\Api\V1\RecentSearchController;
 use App\Http\Controllers\Api\V1\RevenueCatWebhookController;
@@ -57,8 +59,14 @@ Route::prefix('v1')
                 Route::post('/google-place-details', PublicGooglePlaceDetailsController::class)
                     ->middleware('throttle:proximity-check')
                     ->name('google-place-details');
+                Route::post('/location-suggestions/async', PublicAsyncLocationSuggestionsController::class)
+                    ->middleware('throttle:public-location-suggestions-submit')
+                    ->name('location-suggestions.async');
+                Route::get('/location-suggestions/async/{token}', PublicAsyncLocationSuggestionsStatusController::class)
+                    ->middleware('throttle:ai-status-poll')
+                    ->name('location-suggestions.async.status');
                 Route::post('/location-suggestions', PublicLocationSuggestionsController::class)
-                    ->middleware('throttle:ai-generation')
+                    ->middleware('throttle:public-location-suggestions-submit')
                     ->name('location-suggestions');
             });
 
