@@ -5,6 +5,32 @@ namespace App\Services\PublicApi;
 class GooglePlaceMatchValidator
 {
     /**
+     * @var array<string, list<string>>
+     */
+    protected array $aliasGroups = [
+        'heavens_gate' => [
+            'Heaven Gate',
+            'Heaven\'s Gate',
+            'Heavens Gate',
+            'Tianmen Cave',
+            'Tianmen Mountain',
+            'Tianmen Mountain National Forest Park',
+        ],
+        'glass_beach_fort_bragg' => [
+            'Glass Beach',
+            'Glass Pebble Beach',
+            'Sea Glass Beach',
+        ],
+        'cloud_waterfall_chongqing' => [
+            'Cloud Waterfall',
+            'Jinfo Mountain',
+            'Jinfoshan',
+            'Jinfo Mountain Scenic Area',
+            'Jinfoshan Scenic Area',
+        ],
+    ];
+
+    /**
      * @param  array<string, mixed>  $place
      * @param  array<string, mixed>  $googlePlaceDetails
      */
@@ -26,6 +52,10 @@ class GooglePlaceMatchValidator
         }
 
         if ($requestedName === $resolvedName) {
+            return true;
+        }
+
+        if ($this->shareAliasGroup($requestedName, $resolvedName)) {
             return true;
         }
 
@@ -121,6 +151,41 @@ class GooglePlaceMatchValidator
                 if (str_contains($type, $needle)) {
                     return true;
                 }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function aliasesFor(string $placeName): array
+    {
+        $normalizedPlaceName = $this->normalize($placeName);
+
+        if ($normalizedPlaceName === '') {
+            return [];
+        }
+
+        foreach ($this->aliasGroups as $group) {
+            $normalizedGroup = array_map(fn (string $alias): string => $this->normalize($alias), $group);
+
+            if (in_array($normalizedPlaceName, $normalizedGroup, true)) {
+                return array_values(array_unique($group));
+            }
+        }
+
+        return [];
+    }
+
+    protected function shareAliasGroup(string $requestedName, string $resolvedName): bool
+    {
+        foreach ($this->aliasGroups as $group) {
+            $normalizedGroup = array_map(fn (string $alias): string => $this->normalize($alias), $group);
+
+            if (in_array($requestedName, $normalizedGroup, true) && in_array($resolvedName, $normalizedGroup, true)) {
+                return true;
             }
         }
 

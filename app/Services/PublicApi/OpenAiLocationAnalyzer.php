@@ -50,7 +50,7 @@ class OpenAiLocationAnalyzer
     protected function analyzeVideoInChunks(LocationEvidence $evidence, string $originalInput): array
     {
         $chunkSize = max(1, (int) config('location_suggestions.openai.video_chunk_size', 8));
-        $imageChunks = array_chunk($evidence->analysisImages, $chunkSize);
+        $imageChunks = $this->chunkImagesForAnalysis($evidence->analysisImages, $chunkSize);
         $imageDetail = $this->resolveImageDetail($evidence, chunked: true);
         $mergedQuery = '';
         $mergedPlaces = [];
@@ -111,6 +111,37 @@ class OpenAiLocationAnalyzer
         $chunkSize = max(1, (int) config('location_suggestions.openai.video_chunk_size', 8));
 
         return count($evidence->analysisImages) > $chunkSize;
+    }
+
+    /**
+     * @param  list<string>  $images
+     * @return list<list<string>>
+     */
+    protected function chunkImagesForAnalysis(array $images, int $chunkSize): array
+    {
+        $totalImages = count($images);
+
+        if ($totalImages === 0) {
+            return [];
+        }
+
+        if ($totalImages <= $chunkSize) {
+            return [$images];
+        }
+
+        $chunkCount = (int) ceil($totalImages / $chunkSize);
+        $baseChunkSize = intdiv($totalImages, $chunkCount);
+        $remainder = $totalImages % $chunkCount;
+        $offset = 0;
+        $chunks = [];
+
+        for ($index = 0; $index < $chunkCount; $index++) {
+            $currentChunkSize = $baseChunkSize + ($index < $remainder ? 1 : 0);
+            $chunks[] = array_slice($images, $offset, $currentChunkSize);
+            $offset += $currentChunkSize;
+        }
+
+        return $chunks;
     }
 
     protected function resolveImageDetail(LocationEvidence $evidence, bool $chunked): string

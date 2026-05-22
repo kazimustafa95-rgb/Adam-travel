@@ -655,9 +655,198 @@ class PublicTravelToolsApiTest extends TestCase
             ->assertJsonPath('data.places.2.place', 'Reichstag Building')
             ->json();
 
-        $this->assertSame([8, 8, 5], data_get($response, 'data.analysis_debug.openai_chunk_image_counts'));
+        $this->assertSame([7, 7, 7], data_get($response, 'data.analysis_debug.openai_chunk_image_counts'));
         $this->assertSame([false, false, false], $transcriptPromptPresence);
-        $this->assertSame([8, 8, 5], $openAiImageCounts);
+        $this->assertSame([7, 7, 7], $openAiImageCounts);
+    }
+
+    public function test_public_location_suggestions_endpoint_balances_ranked_video_chunks_to_avoid_tiny_tail_batches(): void
+    {
+        Config::set('services.openai.api_key', 'openai-test-key');
+        Config::set('services.openai.model', 'gpt-4o');
+        Config::set('services.google_places.api_key', '');
+        Config::set('location_suggestions.video_processing.enabled', true);
+        Config::set('location_suggestions.video_processing.yt_dlp_path', 'yt-dlp');
+        Config::set('location_suggestions.video_processing.ffmpeg_path', 'ffmpeg');
+        Config::set('location_suggestions.openai.video_chunk_size', 8);
+
+        $openAiImageCounts = [];
+
+        Http::fake(function (Request $request) use (&$openAiImageCounts) {
+            if ($request->url() === 'https://www.instagram.com/oembed/?url='.urlencode('https://www.instagram.com/reel/test-ranked-nine-frames/')) {
+                return Http::response([
+                    'title' => 'Top 5 Places to Visit in North in Spring',
+                    'author_name' => 'abrar_khawja',
+                    'thumbnail_url' => 'https://cdn.example.com/instagram-thumb.jpg',
+                ]);
+            }
+
+            if ($request->url() === 'https://cdn.example.com/instagram-thumb.jpg') {
+                return Http::response('fake-image', 200, [
+                    'Content-Type' => 'image/jpeg',
+                ]);
+            }
+
+            if ($request->url() === 'https://www.instagram.com/reel/test-ranked-nine-frames/') {
+                return Http::response('
+                    <html>
+                        <head>
+                            <meta property="og:title" content="Top 5 Places to Visit in North in Spring" />
+                            <meta property="og:description" content="A spring travel reel." />
+                        </head>
+                        <body>
+                            Top 5 Places to Visit in North in Spring
+                        </body>
+                    </html>
+                ');
+            }
+
+            if (str_ends_with($request->url(), '/audio/transcriptions')) {
+                return Http::response([
+                    'text' => '',
+                ]);
+            }
+
+            if (str_ends_with($request->url(), '/chat/completions')) {
+                $payload = $request->data();
+                $messages = $payload['messages'] ?? [];
+                $userMessage = $messages[1]['content'] ?? [];
+                $imageEntries = array_values(array_filter(
+                    is_array($userMessage) ? $userMessage : [],
+                    fn ($item): bool => is_array($item) && (($item['type'] ?? null) === 'image_url')
+                ));
+
+                $openAiImageCounts[] = count($imageEntries);
+
+                $callNumber = count($openAiImageCounts);
+                $places = match ($callNumber) {
+                    1 => [
+                        [
+                            'place' => 'Khaplu Valley',
+                            'category' => 'Valley',
+                            'city' => 'Skardu',
+                            'country' => 'Pakistan',
+                            'confidence' => '90%',
+                            'lat' => 0,
+                            'lng' => 0,
+                            'reason' => 'Overlay text identifies Khaplu Valley.',
+                        ],
+                        [
+                            'place' => 'Baghardo, Kachura',
+                            'category' => 'Area',
+                            'city' => 'Skardu',
+                            'country' => 'Pakistan',
+                            'confidence' => '88%',
+                            'lat' => 0,
+                            'lng' => 0,
+                            'reason' => 'Overlay text identifies Baghardo, Kachura.',
+                        ],
+                        [
+                            'place' => 'Chunda Valley',
+                            'category' => 'Valley',
+                            'city' => 'Skardu',
+                            'country' => 'Pakistan',
+                            'confidence' => '87%',
+                            'lat' => 0,
+                            'lng' => 0,
+                            'reason' => 'Overlay text identifies Chunda Valley.',
+                        ],
+                    ],
+                    default => [
+                        [
+                            'place' => 'Shigar Valley',
+                            'category' => 'Valley',
+                            'city' => 'Skardu',
+                            'country' => 'Pakistan',
+                            'confidence' => '89%',
+                            'lat' => 0,
+                            'lng' => 0,
+                            'reason' => 'Overlay text identifies Shigar Valley.',
+                        ],
+                        [
+                            'place' => 'Sadpara Lake',
+                            'category' => 'Lake',
+                            'city' => 'Skardu',
+                            'country' => 'Pakistan',
+                            'confidence' => '86%',
+                            'lat' => 0,
+                            'lng' => 0,
+                            'reason' => 'Overlay text identifies Sadpara Lake.',
+                        ],
+                    ],
+                };
+
+                return Http::response([
+                    'choices' => [
+                        [
+                            'message' => [
+                                'content' => json_encode([
+                                    'query' => 'Top 5 Places to Visit in North in Spring',
+                                    'places' => $places,
+                                ], JSON_THROW_ON_ERROR),
+                            ],
+                        ],
+                    ],
+                ]);
+            }
+
+            return Http::response([], 404);
+        });
+
+        Process::fake(function ($process) {
+            $command = is_array($process->command) ? $process->command : [$process->command];
+            $binary = $command[0] ?? null;
+            $lastArgument = (string) ($command[array_key_last($command)] ?? '');
+
+            if ($binary === 'yt-dlp') {
+                if (in_array('--dump-single-json', $command, true)) {
+                    return Process::result(json_encode([
+                        'duration' => 18,
+                    ], JSON_THROW_ON_ERROR));
+                }
+
+                $outputIndex = array_search('--output', $command, true);
+                $template = is_int($outputIndex) ? (string) ($command[$outputIndex + 1] ?? '') : '';
+                $videoPath = str_replace('.%(ext)s', '.mp4', $template);
+
+                if ($videoPath !== '') {
+                    file_put_contents($videoPath, 'fake-video');
+                }
+
+                return Process::result();
+            }
+
+            if ($binary === 'ffmpeg' && str_contains($lastArgument, 'frame-%03d.jpg')) {
+                $framesDir = dirname($lastArgument);
+
+                for ($index = 1; $index <= 9; $index++) {
+                    file_put_contents($framesDir.DIRECTORY_SEPARATOR.'frame-'.str_pad((string) $index, 3, '0', STR_PAD_LEFT).'.jpg', 'frame-'.$index);
+                }
+
+                return Process::result();
+            }
+
+            if ($binary === 'ffmpeg' && str_ends_with($lastArgument, 'audio.mp3')) {
+                file_put_contents($lastArgument, 'fake-audio');
+
+                return Process::result();
+            }
+
+            return Process::result('', '', 1);
+        });
+
+        $response = $this->postJson('/api/v1/public/location-suggestions', [
+            'input' => 'https://www.instagram.com/reel/test-ranked-nine-frames/',
+        ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.analysis_debug.video_duration_seconds', 18)
+            ->assertJsonPath('data.analysis_debug.openai_request_count', 2)
+            ->assertJsonCount(5, 'data.places')
+            ->json();
+
+        $this->assertSame([5, 4], data_get($response, 'data.analysis_debug.openai_chunk_image_counts'));
+        $this->assertSame([5, 4], $openAiImageCounts);
     }
 
     public function test_public_location_suggestions_endpoint_ignores_tiktok_tracking_image_urls(): void
@@ -927,6 +1116,296 @@ class PublicTravelToolsApiTest extends TestCase
             ->assertJsonPath('data.places.0.google_place_details.id', 'landmark_place_1')
             ->assertJsonPath('data.places.0.google_place_details.place', 'Heaven\'s Gate')
             ->assertJsonPath('data.places.0.google_place_details.image', 'https://cdn.example.com/heavens-gate.jpg');
+    }
+
+    public function test_public_location_suggestions_endpoint_uses_alias_lookup_queries_for_canonical_landmarks(): void
+    {
+        Config::set('services.openai.api_key', 'openai-test-key');
+        Config::set('services.openai.model', 'gpt-4o');
+        Config::set('services.google_places.api_key', 'google-test-key');
+
+        Http::fake(function (Request $request) {
+            $payload = $request->data();
+            $textQuery = is_array($payload) ? ($payload['textQuery'] ?? null) : null;
+
+            return match (true) {
+                $request->url() === 'https://example.com/heavens-gate-alias' => Http::response('
+                    <html>
+                        <head>
+                            <meta property="og:title" content="Heaven\'s Gate China" />
+                            <meta property="og:description" content="A scenic landmark in China." />
+                        </head>
+                        <body>
+                            Heaven\'s Gate in China.
+                        </body>
+                    </html>
+                '),
+                str_ends_with($request->url(), '/chat/completions') => Http::response([
+                    'choices' => [
+                        [
+                            'message' => [
+                                'content' => json_encode([
+                                    'query' => 'Heaven\'s Gate China',
+                                    'places' => [
+                                        [
+                                            'place' => 'Heaven\'s Gate',
+                                            'category' => 'Natural Landmark',
+                                            'city' => 'Zhangjiajie',
+                                            'country' => 'China',
+                                            'confidence' => '91%',
+                                            'lat' => 0,
+                                            'lng' => 0,
+                                            'reason' => 'The title identifies Heaven\'s Gate in China.',
+                                        ],
+                                    ],
+                                ], JSON_THROW_ON_ERROR),
+                            ],
+                        ],
+                    ],
+                ]),
+                str_ends_with($request->url(), '/places:searchText') && $textQuery === 'Heaven\'s Gate, Zhangjiajie, China' => Http::response([
+                    'places' => [],
+                ]),
+                str_ends_with($request->url(), '/places:searchText') && $textQuery === 'Tianmen Cave, Zhangjiajie, China' => Http::response([
+                    'places' => [
+                        [
+                            'id' => 'tianmen_cave_place_1',
+                            'displayName' => ['text' => 'Tianmen Cave'],
+                            'formattedAddress' => 'Tianmen Mountain, Zhangjiajie, Hunan, China',
+                            'location' => [
+                                'latitude' => 29.0522,
+                                'longitude' => 110.4786,
+                            ],
+                            'photos' => [
+                                ['name' => 'places/tianmen_cave_place_1/photos/photo_1'],
+                            ],
+                            'types' => ['tourist_attraction', 'point_of_interest'],
+                            'primaryType' => 'tourist_attraction',
+                            'primaryTypeDisplayName' => ['text' => 'Tourist attraction'],
+                        ],
+                    ],
+                ]),
+                str_contains($request->url(), '/tianmen_cave_place_1/photos/photo_1/media') => Http::response([
+                    'photoUri' => 'https://cdn.example.com/tianmen-cave.jpg',
+                ]),
+                default => Http::response([], 404),
+            };
+        });
+
+        $this->postJson('/api/v1/public/location-suggestions', [
+            'input' => 'https://example.com/heavens-gate-alias',
+        ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'data.places')
+            ->assertJsonPath('data.places.0.place', 'Heaven\'s Gate')
+            ->assertJsonPath('data.places.0.lat', 29.0522)
+            ->assertJsonPath('data.places.0.lng', 110.4786)
+            ->assertJsonPath('data.places.0.google_place_details.id', 'tianmen_cave_place_1')
+            ->assertJsonPath('data.places.0.google_place_details.place', 'Tianmen Cave')
+            ->assertJsonPath('data.places.0.google_place_details.image', 'https://cdn.example.com/tianmen-cave.jpg');
+    }
+
+    public function test_public_location_suggestions_endpoint_uses_alias_lookup_queries_for_descriptive_places(): void
+    {
+        Config::set('services.openai.api_key', 'openai-test-key');
+        Config::set('services.openai.model', 'gpt-4o');
+        Config::set('services.google_places.api_key', 'google-test-key');
+
+        Http::fake(function (Request $request) {
+            $payload = $request->data();
+            $textQuery = is_array($payload) ? ($payload['textQuery'] ?? null) : null;
+
+            return match (true) {
+                $request->url() === 'https://example.com/cloud-waterfall' => Http::response('
+                    <html>
+                        <head>
+                            <meta property="og:title" content="Cloud Waterfall Chongqing" />
+                            <meta property="og:description" content="A cloud sea in the mountains of Chongqing." />
+                        </head>
+                        <body>
+                            Cloud Waterfall in Chongqing.
+                        </body>
+                    </html>
+                '),
+                str_ends_with($request->url(), '/chat/completions') => Http::response([
+                    'choices' => [
+                        [
+                            'message' => [
+                                'content' => json_encode([
+                                    'query' => 'Cloud Waterfall Chongqing',
+                                    'places' => [
+                                        [
+                                            'place' => 'Cloud Waterfall',
+                                            'category' => 'Natural Phenomenon',
+                                            'city' => 'Chongqing',
+                                            'country' => 'China',
+                                            'confidence' => '85%',
+                                            'lat' => 0,
+                                            'lng' => 0,
+                                            'reason' => 'The transcript mentions Cloud Waterfall in Chongqing.',
+                                        ],
+                                    ],
+                                ], JSON_THROW_ON_ERROR),
+                            ],
+                        ],
+                    ],
+                ]),
+                str_ends_with($request->url(), '/places:searchText') && $textQuery === 'Cloud Waterfall, Chongqing, China' => Http::response([
+                    'places' => [],
+                ]),
+                str_ends_with($request->url(), '/places:searchText') && $textQuery === 'Jinfoshan Scenic Area, Chongqing, China' => Http::response([
+                    'places' => [
+                        [
+                            'id' => 'jinfoshan_place_1',
+                            'displayName' => ['text' => 'Jinfoshan Scenic Area'],
+                            'formattedAddress' => 'Nanchuan District, Chongqing, China',
+                            'location' => [
+                                'latitude' => 29.0128,
+                                'longitude' => 107.2440,
+                            ],
+                            'photos' => [
+                                ['name' => 'places/jinfoshan_place_1/photos/photo_1'],
+                            ],
+                            'types' => ['tourist_attraction', 'park'],
+                            'primaryType' => 'tourist_attraction',
+                            'primaryTypeDisplayName' => ['text' => 'Tourist attraction'],
+                        ],
+                    ],
+                ]),
+                str_contains($request->url(), '/jinfoshan_place_1/photos/photo_1/media') => Http::response([
+                    'photoUri' => 'https://cdn.example.com/jinfoshan.jpg',
+                ]),
+                default => Http::response([], 404),
+            };
+        });
+
+        $this->postJson('/api/v1/public/location-suggestions', [
+            'input' => 'https://example.com/cloud-waterfall',
+        ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'data.places')
+            ->assertJsonPath('data.places.0.place', 'Cloud Waterfall')
+            ->assertJsonPath('data.places.0.lat', 29.0128)
+            ->assertJsonPath('data.places.0.lng', 107.2440)
+            ->assertJsonPath('data.places.0.google_place_details.id', 'jinfoshan_place_1')
+            ->assertJsonPath('data.places.0.google_place_details.place', 'Jinfoshan Scenic Area')
+            ->assertJsonPath('data.places.0.google_place_details.image', 'https://cdn.example.com/jinfoshan.jpg');
+    }
+
+    public function test_public_location_suggestions_endpoint_deduplicates_places_that_enrich_to_the_same_google_location(): void
+    {
+        Config::set('services.openai.api_key', 'openai-test-key');
+        Config::set('services.openai.model', 'gpt-4o');
+        Config::set('services.google_places.api_key', 'google-test-key');
+
+        Http::fake(function (Request $request) {
+            $payload = $request->data();
+            $textQuery = is_array($payload) ? ($payload['textQuery'] ?? null) : null;
+
+            return match (true) {
+                $request->url() === 'https://example.com/heavens-gate-same-google-place' => Http::response('
+                    <html>
+                        <head>
+                            <meta property="og:title" content="Heaven\'s Gate China" />
+                            <meta property="og:description" content="A scenic landmark in China." />
+                        </head>
+                        <body>
+                            Heaven\'s Gate in China.
+                        </body>
+                    </html>
+                '),
+                str_ends_with($request->url(), '/chat/completions') => Http::response([
+                    'choices' => [
+                        [
+                            'message' => [
+                                'content' => json_encode([
+                                    'query' => 'Heaven\'s Gate China',
+                                    'places' => [
+                                        [
+                                            'place' => 'Heaven\'s Gate',
+                                            'category' => 'Natural Landmark',
+                                            'city' => 'Zhangjiajie',
+                                            'country' => 'China',
+                                            'confidence' => '90%',
+                                            'lat' => 0,
+                                            'lng' => 0,
+                                            'reason' => 'The mountain arch and stairs identify Heaven\'s Gate.',
+                                        ],
+                                        [
+                                            'place' => 'Tianmen Mountain',
+                                            'category' => 'Natural Landmark',
+                                            'city' => 'Zhangjiajie',
+                                            'country' => 'China',
+                                            'confidence' => '80%',
+                                            'lat' => 0,
+                                            'lng' => 0,
+                                            'reason' => 'The frames show Tianmen Mountain in Zhangjiajie.',
+                                        ],
+                                    ],
+                                ], JSON_THROW_ON_ERROR),
+                            ],
+                        ],
+                    ],
+                ]),
+                str_ends_with($request->url(), '/places:searchText') && $textQuery === 'Heaven\'s Gate, Zhangjiajie, China' => Http::response([
+                    'places' => [
+                        [
+                            'id' => 'tianmen_mountain_place_1',
+                            'displayName' => ['text' => 'Tianmen Mountain'],
+                            'formattedAddress' => 'Zhangjiajie, Hunan, China',
+                            'location' => [
+                                'latitude' => 29.046809,
+                                'longitude' => 110.482084,
+                            ],
+                            'photos' => [
+                                ['name' => 'places/tianmen_mountain_place_1/photos/photo_1'],
+                            ],
+                            'types' => ['tourist_attraction', 'point_of_interest'],
+                            'primaryType' => 'tourist_attraction',
+                            'primaryTypeDisplayName' => ['text' => 'Tourist attraction'],
+                        ],
+                    ],
+                ]),
+                str_ends_with($request->url(), '/places:searchText') && $textQuery === 'Tianmen Mountain, Zhangjiajie, China' => Http::response([
+                    'places' => [
+                        [
+                            'id' => 'tianmen_mountain_place_1',
+                            'displayName' => ['text' => 'Tianmen Mountain'],
+                            'formattedAddress' => 'Zhangjiajie, Hunan, China',
+                            'location' => [
+                                'latitude' => 29.046809,
+                                'longitude' => 110.482084,
+                            ],
+                            'photos' => [
+                                ['name' => 'places/tianmen_mountain_place_1/photos/photo_1'],
+                            ],
+                            'types' => ['tourist_attraction', 'point_of_interest'],
+                            'primaryType' => 'tourist_attraction',
+                            'primaryTypeDisplayName' => ['text' => 'Tourist attraction'],
+                        ],
+                    ],
+                ]),
+                str_contains($request->url(), '/tianmen_mountain_place_1/photos/photo_1/media') => Http::response([
+                    'photoUri' => 'https://cdn.example.com/tianmen-mountain.jpg',
+                ]),
+                default => Http::response([], 404),
+            };
+        });
+
+        $this->postJson('/api/v1/public/location-suggestions', [
+            'input' => 'https://example.com/heavens-gate-same-google-place',
+        ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'data.places')
+            ->assertJsonPath('data.places.0.place', 'Heaven\'s Gate')
+            ->assertJsonPath('data.places.0.lat', 29.046809)
+            ->assertJsonPath('data.places.0.lng', 110.482084)
+            ->assertJsonPath('data.places.0.google_place_details.id', 'tianmen_mountain_place_1')
+            ->assertJsonPath('data.places.0.google_place_details.place', 'Tianmen Mountain')
+            ->assertJsonPath('data.places.0.google_place_details.image', 'https://cdn.example.com/tianmen-mountain.jpg');
     }
 
     public function test_public_location_suggestions_endpoint_sends_multiple_page_images_to_openai(): void

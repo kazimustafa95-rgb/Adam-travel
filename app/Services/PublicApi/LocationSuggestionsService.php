@@ -74,7 +74,9 @@ class LocationSuggestionsService
      */
     protected function enrichPlacesWithGoogleDetails(array $places): array
     {
-        return array_map(fn (array $place): array => $this->enrichPlaceWithGoogleDetails($place), $places);
+        $enrichedPlaces = array_map(fn (array $place): array => $this->enrichPlaceWithGoogleDetails($place), $places);
+
+        return $this->deduplicateEnrichedPlaces($enrichedPlaces);
     }
 
     /**
@@ -198,14 +200,42 @@ class LocationSuggestionsService
         $city = trim((string) ($place['city'] ?? ''));
         $country = trim((string) ($place['country'] ?? ''));
 
-        $queries = [
-            $this->implodeQuerySegments([$placeName, $city, $country]),
-            $this->implodeQuerySegments([$placeName, $country]),
-            $this->implodeQuerySegments([$placeName, $city]),
-            $placeName,
-        ];
+        $queries = [];
+
+        foreach ($this->buildLookupNames($placeName) as $lookupName) {
+            $queries[] = $this->implodeQuerySegments([$lookupName, $city, $country]);
+            $queries[] = $this->implodeQuerySegments([$lookupName, $country]);
+            $queries[] = $this->implodeQuerySegments([$lookupName, $city]);
+            $queries[] = $lookupName;
+        }
 
         return array_values(array_unique(array_filter($queries, fn (string $query): bool => $query !== '')));
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function buildLookupNames(string $placeName): array
+    {
+        $lookupNames = [];
+
+        foreach ([$placeName, ...$this->googlePlaceMatchValidator->aliasesFor($placeName)] as $candidate) {
+            $candidate = trim($candidate);
+
+            if ($candidate === '') {
+                continue;
+            }
+
+            $key = $this->normalizePlaceName($candidate);
+
+            if ($key === '' || isset($lookupNames[$key])) {
+                continue;
+            }
+
+            $lookupNames[$key] = $candidate;
+        }
+
+        return array_values($lookupNames);
     }
 
     /**
@@ -406,5 +436,112 @@ class LocationSuggestionsService
         }
 
         return (int) $matches[1];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $places
+     * @return list<array<string, mixed>>
+     */
+    protected function deduplicateEnrichedPlaces(array $places): array
+    {
+        $deduplicated = [];
+
+        foreach ($places as $place) {
+            $key = $this->enrichedDeduplicationKey($place);
+
+            if ($key === '') {
+                $deduplicated[] = $place;
+
+                continue;
+            }
+
+            if (! isset($deduplicated[$key])) {
+                $deduplicated[$key] = $place;
+
+                continue;
+            }
+
+            $deduplicated[$key] = $this->mergeEnrichedPlaces($deduplicated[$key], $place);
+        }
+
+        return array_values($deduplicated);
+    }
+
+    /**
+     * @param  array<string, mixed>  $place
+     */
+    protected function enrichedDeduplicationKey(array $place): string
+    {
+        $googlePlaceId = trim((string) data_get($place, 'google_place_details.id', ''));
+
+        if ($googlePlaceId !== '') {
+            return 'google:'.$googlePlaceId;
+        }
+
+        return $this->deduplicationKey($place);
+    }
+
+    /**
+     * @param  array<string, mixed>  $existingPlace
+     * @param  array<string, mixed>  $incomingPlace
+     * @return array<string, mixed>
+     */
+    protected function mergeEnrichedPlaces(array $existingPlace, array $incomingPlace): array
+    {
+        $preferredDisplayName = $this->preferredEnrichedPlaceName($existingPlace, $incomingPlace);
+        $mergedPlace = $this->mergeDuplicatePlaces($existingPlace, $incomingPlace);
+
+        if ($preferredDisplayName !== '') {
+            $mergedPlace['place'] = $preferredDisplayName;
+        }
+
+        if ((float) ($mergedPlace['lat'] ?? 0) === 0.0) {
+            $mergedPlace['lat'] = (float) (($existingPlace['lat'] ?? 0) ?: ($incomingPlace['lat'] ?? 0));
+        }
+
+        if ((float) ($mergedPlace['lng'] ?? 0) === 0.0) {
+            $mergedPlace['lng'] = (float) (($existingPlace['lng'] ?? 0) ?: ($incomingPlace['lng'] ?? 0));
+        }
+
+        if (! is_array($mergedPlace['google_place_details'] ?? null)) {
+            $mergedPlace['google_place_details'] = is_array($existingPlace['google_place_details'] ?? null)
+                ? $existingPlace['google_place_details']
+                : (is_array($incomingPlace['google_place_details'] ?? null) ? $incomingPlace['google_place_details'] : null);
+        }
+
+        return $mergedPlace;
+    }
+
+    /**
+     * @param  array<string, mixed>  $existingPlace
+     * @param  array<string, mixed>  $incomingPlace
+     */
+    protected function preferredEnrichedPlaceName(array $existingPlace, array $incomingPlace): string
+    {
+        $existingConfidence = $this->confidenceScore($existingPlace['confidence'] ?? null);
+        $incomingConfidence = $this->confidenceScore($incomingPlace['confidence'] ?? null);
+
+        if ($incomingConfidence > $existingConfidence) {
+            return trim((string) ($incomingPlace['place'] ?? ''));
+        }
+
+        if ($incomingConfidence < $existingConfidence) {
+            return trim((string) ($existingPlace['place'] ?? ''));
+        }
+
+        $existingPlaceName = trim((string) ($existingPlace['place'] ?? ''));
+        $incomingPlaceName = trim((string) ($incomingPlace['place'] ?? ''));
+
+        if ($existingPlaceName === '') {
+            return $incomingPlaceName;
+        }
+
+        if ($incomingPlaceName === '') {
+            return $existingPlaceName;
+        }
+
+        return strlen($incomingPlaceName) > strlen($existingPlaceName)
+            ? $incomingPlaceName
+            : $existingPlaceName;
     }
 }
