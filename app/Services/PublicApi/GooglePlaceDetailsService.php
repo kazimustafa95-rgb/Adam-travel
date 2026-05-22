@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Http;
 
 class GooglePlaceDetailsService
 {
-    private const SEARCH_FIELDS = 'places.id,places.displayName,places.formattedAddress,places.location,places.photos';
+    private const SEARCH_FIELDS = 'places.id,places.displayName,places.formattedAddress,places.location,places.photos,places.types,places.primaryType,places.primaryTypeDisplayName';
 
     private const DETAILS_FIELDS = 'id,name,displayName,formattedAddress,shortFormattedAddress,location,viewport,types,primaryType,primaryTypeDisplayName,businessStatus,googleMapsUri,websiteUri,nationalPhoneNumber,internationalPhoneNumber,rating,userRatingCount,priceLevel,priceRange,regularOpeningHours,currentOpeningHours,photos,reviews,editorialSummary,plusCode,utcOffsetMinutes,timeZone,parkingOptions,paymentOptions,accessibilityOptions';
 
@@ -39,6 +39,9 @@ class GooglePlaceDetailsService
             'image' => is_string($photoName) ? $this->getPlacePhotoUrl($photoName) : null,
             'lat' => (float) data_get($place, 'location.latitude', 0),
             'lng' => (float) data_get($place, 'location.longitude', 0),
+            'types' => is_array($place['types'] ?? null) ? $place['types'] : [],
+            'primaryType' => (string) ($place['primaryType'] ?? ''),
+            'primaryTypeDisplayName' => (string) data_get($place, 'primaryTypeDisplayName.text', ''),
         ];
     }
 

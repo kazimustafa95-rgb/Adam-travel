@@ -1,0 +1,222 @@
+{
+  "info": {
+    "_postman_id": "5b724b8b-3a8d-4e89-a4d0-4471f866b001",
+    "name": "Adam Travel Location Suggestions Testing",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost"
+    },
+    {
+      "key": "async_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Location Suggestions - Web URL (Sync)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"input\": \"https://example.com/travel-post\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/public/location-suggestions",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "location-suggestions"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Location Suggestions - Video URL (Sync or Auto Async)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let body = {};",
+              "try { body = pm.response.json(); } catch (e) {}",
+              "const token = body?.data?.async_job?.token || body?.data?.token || '';",
+              "if (token) {",
+              "  pm.collectionVariables.set('async_token', token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"input\": \"https://www.tiktok.com/@worldsecrets360/video/7585548153827495190?q=best%20places%20to%20travel%20in%20china&t=1779315254644\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/public/location-suggestions",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "location-suggestions"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Location Suggestions - Force Async From Sync Endpoint",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let body = {};",
+              "try { body = pm.response.json(); } catch (e) {}",
+              "const token = body?.data?.async_job?.token || body?.data?.token || '';",
+              "if (token) {",
+              "  pm.collectionVariables.set('async_token', token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"input\": \"https://www.tiktok.com/@worldsecrets360/video/7585548153827495190?q=best%20places%20to%20travel%20in%20china&t=1779315254644\",\n  \"prefer_async\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/public/location-suggestions",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "location-suggestions"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Location Suggestions - Async Create",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let body = {};",
+              "try { body = pm.response.json(); } catch (e) {}",
+              "const token = body?.data?.async_job?.token || body?.data?.token || '';",
+              "if (token) {",
+              "  pm.collectionVariables.set('async_token', token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"input\": \"https://www.tiktok.com/@worldsecrets360/video/7585548153827495190?q=best%20places%20to%20travel%20in%20china&t=1779315254644\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/public/location-suggestions/async",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "location-suggestions",
+            "async"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Location Suggestions - Async Status",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/public/location-suggestions/async/{{async_token}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "location-suggestions",
+            "async",
+            "{{async_token}}"
+          ]
+        }
+      }
+    }
+  ]
+}
