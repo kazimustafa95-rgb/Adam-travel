@@ -234,6 +234,7 @@ class PublicTravelToolsApiTest extends TestCase
         Config::set('location_suggestions.video_processing.yt_dlp_path', 'yt-dlp');
         Config::set('location_suggestions.video_processing.ffmpeg_path', 'ffmpeg');
         Config::set('location_suggestions.video_processing.max_frames', 4);
+        Config::set('location_suggestions.video_processing.frame_divisor_seconds', 2);
         Config::set('location_suggestions.video_processing.frame_interval_seconds', 2);
 
         Http::fake(function (Request $request) {
@@ -436,6 +437,7 @@ class PublicTravelToolsApiTest extends TestCase
         Config::set('location_suggestions.video_processing.ffmpeg_path', 'ffmpeg');
         Config::set('location_suggestions.video_processing.max_video_seconds', 45);
         Config::set('location_suggestions.video_processing.max_frames', 8);
+        Config::set('location_suggestions.video_processing.frame_divisor_seconds', 2);
         Config::set('location_suggestions.openai.video_chunk_size', 8);
         Config::set('location_suggestions.openai.chunked_video_image_detail', 'low');
 
@@ -658,6 +660,169 @@ class PublicTravelToolsApiTest extends TestCase
         $this->assertSame([7, 7, 7], data_get($response, 'data.analysis_debug.openai_chunk_image_counts'));
         $this->assertSame([false, false, false], $transcriptPromptPresence);
         $this->assertSame([7, 7, 7], $openAiImageCounts);
+    }
+
+    public function test_public_location_suggestions_endpoint_retries_video_download_with_fallback_strategy(): void
+    {
+        Config::set('services.openai.api_key', 'openai-test-key');
+        Config::set('services.openai.model', 'gpt-4o');
+        Config::set('services.google_places.api_key', 'google-test-key');
+        Config::set('location_suggestions.video_processing.enabled', true);
+        Config::set('location_suggestions.video_processing.yt_dlp_path', 'yt-dlp');
+        Config::set('location_suggestions.video_processing.ffmpeg_path', 'ffmpeg');
+
+        Http::fake(function (Request $request) {
+            $payload = $request->data();
+            $textQuery = is_array($payload) ? ($payload['textQuery'] ?? null) : null;
+
+            return match (true) {
+                $request->url() === 'https://www.youtube.com/oembed?url='.urlencode('https://youtube.com/shorts/fallback-download-test?si=abc').'&format=json' => Http::response([
+                    'title' => 'Top 10 places in Kuala Lumpur in 2 days',
+                    'author_name' => 'Travel and Tales by Kiran',
+                    'thumbnail_url' => 'https://i.ytimg.com/vi/test-short/hq2.jpg',
+                ]),
+                $request->url() === 'https://i.ytimg.com/vi/test-short/hq2.jpg' => Http::response('fake-image', 200, [
+                    'Content-Type' => 'image/jpeg',
+                ]),
+                $request->url() === 'https://youtube.com/shorts/fallback-download-test?si=abc' => Http::response('
+                    <html>
+                        <head>
+                            <meta property="og:title" content="Top 10 places in Kuala Lumpur in 2 days" />
+                            <meta property="og:description" content="A short travel reel." />
+                        </head>
+                        <body>
+                            Top 10 places in Kuala Lumpur in 2 days
+                        </body>
+                    </html>
+                '),
+                str_ends_with($request->url(), '/audio/transcriptions') => Http::response([
+                    'text' => '',
+                ]),
+                str_ends_with($request->url(), '/chat/completions') => Http::response([
+                    'choices' => [
+                        [
+                            'message' => [
+                                'content' => json_encode([
+                                    'query' => 'Top 10 places in Kuala Lumpur in 2 days',
+                                    'places' => [
+                                        [
+                                            'place' => 'Jalan Alor',
+                                            'category' => 'Street',
+                                            'city' => 'Kuala Lumpur',
+                                            'country' => 'Malaysia',
+                                            'confidence' => '80%',
+                                            'lat' => 0,
+                                            'lng' => 0,
+                                            'reason' => 'Video frames show Jalan Alor signage.',
+                                        ],
+                                        [
+                                            'place' => 'Petronas Towers',
+                                            'category' => 'Landmark',
+                                            'city' => 'Kuala Lumpur',
+                                            'country' => 'Malaysia',
+                                            'confidence' => '82%',
+                                            'lat' => 0,
+                                            'lng' => 0,
+                                            'reason' => 'Video frames show the twin towers.',
+                                        ],
+                                    ],
+                                ], JSON_THROW_ON_ERROR),
+                            ],
+                        ],
+                    ],
+                ]),
+                str_ends_with($request->url(), '/places:searchText') && $textQuery === 'Jalan Alor, Kuala Lumpur, Malaysia' => Http::response([
+                    'places' => [
+                        [
+                            'id' => 'jalan_alor_place_1',
+                            'displayName' => ['text' => 'Jalan Alor'],
+                            'formattedAddress' => 'Kuala Lumpur, Malaysia',
+                            'location' => ['latitude' => 3.1459204, 'longitude' => 101.7089731],
+                            'types' => ['tourist_attraction'],
+                            'primaryType' => 'tourist_attraction',
+                            'primaryTypeDisplayName' => ['text' => 'Tourist attraction'],
+                        ],
+                    ],
+                ]),
+                str_ends_with($request->url(), '/places:searchText') && $textQuery === 'Petronas Towers, Kuala Lumpur, Malaysia' => Http::response([
+                    'places' => [
+                        [
+                            'id' => 'petronas_place_1',
+                            'displayName' => ['text' => 'Petronas Twin Towers'],
+                            'formattedAddress' => 'Kuala Lumpur, Malaysia',
+                            'location' => ['latitude' => 3.1579, 'longitude' => 101.7116],
+                            'types' => ['tourist_attraction'],
+                            'primaryType' => 'tourist_attraction',
+                            'primaryTypeDisplayName' => ['text' => 'Tourist attraction'],
+                        ],
+                    ],
+                ]),
+                default => Http::response([], 404),
+            };
+        });
+
+        $ytDlpDownloadAttempts = 0;
+
+        Process::fake(function ($process) use (&$ytDlpDownloadAttempts) {
+            $command = is_array($process->command) ? $process->command : [$process->command];
+            $binary = $command[0] ?? null;
+            $lastArgument = (string) ($command[array_key_last($command)] ?? '');
+
+            if ($binary === 'yt-dlp') {
+                if (in_array('--dump-single-json', $command, true)) {
+                    return Process::result(json_encode([
+                        'duration' => 18,
+                    ], JSON_THROW_ON_ERROR));
+                }
+
+                $ytDlpDownloadAttempts++;
+                $outputIndex = array_search('--output', $command, true);
+                $template = is_int($outputIndex) ? (string) ($command[$outputIndex + 1] ?? '') : '';
+                $videoPath = str_replace('.%(ext)s', '.mp4', $template);
+
+                if ($ytDlpDownloadAttempts === 1) {
+                    return Process::result('', 'Requested format is not available', 1);
+                }
+
+                if ($videoPath !== '') {
+                    file_put_contents($videoPath, 'fake-video');
+                }
+
+                return Process::result();
+            }
+
+            if ($binary === 'ffmpeg' && str_contains($lastArgument, 'frame-%03d.jpg')) {
+                $framesDir = dirname($lastArgument);
+
+                for ($index = 1; $index <= 4; $index++) {
+                    file_put_contents($framesDir.DIRECTORY_SEPARATOR.'frame-'.str_pad((string) $index, 3, '0', STR_PAD_LEFT).'.jpg', 'frame-'.$index);
+                }
+
+                return Process::result();
+            }
+
+            if ($binary === 'ffmpeg' && str_ends_with($lastArgument, 'audio.mp3')) {
+                file_put_contents($lastArgument, 'fake-audio');
+
+                return Process::result();
+            }
+
+            return Process::result('', '', 1);
+        });
+
+        $response = $this->postJson('/api/v1/public/location-suggestions', [
+            'input' => 'https://youtube.com/shorts/fallback-download-test?si=abc',
+        ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.analysis_debug.video_download_succeeded', true)
+            ->assertJsonPath('data.analysis_debug.frames_extracted', 4)
+            ->assertJsonCount(2, 'data.places')
+            ->json();
+
+        $this->assertSame(2, $ytDlpDownloadAttempts);
+        $this->assertSame('Jalan Alor', data_get($response, 'data.places.0.place'));
+        $this->assertSame('Petronas Towers', data_get($response, 'data.places.1.place'));
     }
 
     public function test_public_location_suggestions_endpoint_balances_ranked_video_chunks_to_avoid_tiny_tail_batches(): void

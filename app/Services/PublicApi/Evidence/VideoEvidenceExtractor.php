@@ -48,7 +48,8 @@ class VideoEvidenceExtractor
 
         try {
             $videoDurationSeconds = $this->fetchVideoDurationSeconds($url, $ytDlpPath);
-            $videoPath = $this->downloadVideo($url, $workDir, $ytDlpPath);
+            $downloadResult = $this->downloadVideo($url, $workDir, $ytDlpPath);
+            $videoPath = $downloadResult['path'];
 
             if ($videoPath === null) {
                 return $evidence->withAnalysisDebug([
@@ -56,6 +57,8 @@ class VideoEvidenceExtractor
                     'video_download_succeeded' => false,
                     'video_duration_seconds' => $videoDurationSeconds,
                     'expected_place_count' => $expectedPlaceCount,
+                    'video_download_error' => $downloadResult['error'],
+                    'video_download_strategy' => $downloadResult['strategy'],
                     ...$binaryDebug,
                 ]);
             }
@@ -98,34 +101,53 @@ class VideoEvidenceExtractor
         return (bool) config('location_suggestions.video_processing.enabled', true);
     }
 
-    protected function downloadVideo(string $url, string $workDir, string $ytDlpPath): ?string
+    /**
+     * @return array{path:?string,error:?string,strategy:?string}
+     */
+    protected function downloadVideo(string $url, string $workDir, string $ytDlpPath): array
     {
         $outputTemplate = $workDir.DIRECTORY_SEPARATOR.'source.%(ext)s';
+        $lastError = null;
 
-        $result = Process::path($workDir)
-            ->timeout(180)
-            ->run([
-                $ytDlpPath,
-                '--no-playlist',
-                '--no-progress',
-                '--newline',
-                '--output',
-                $outputTemplate,
-                '--format',
-                'mp4/best[ext=mp4]/best',
-                $url,
-            ]);
+        foreach ($this->videoDownloadStrategies() as $strategy) {
+            $this->cleanupDownloadArtifacts($workDir);
 
-        if ($result->failed()) {
-            return null;
+            $result = Process::path($workDir)
+                ->timeout(180)
+                ->run([
+                    $ytDlpPath,
+                    '--no-playlist',
+                    '--no-progress',
+                    '--newline',
+                    '--output',
+                    $outputTemplate,
+                    ...$strategy['args'],
+                    $url,
+                ]);
+
+            if ($result->successful()) {
+                $files = array_values(array_filter(
+                    glob($workDir.DIRECTORY_SEPARATOR.'source.*') ?: [],
+                    fn (string $path): bool => ! str_ends_with(strtolower($path), '.part')
+                ));
+
+                if (($files[0] ?? null) !== null) {
+                    return [
+                        'path' => $files[0],
+                        'error' => null,
+                        'strategy' => $strategy['name'],
+                    ];
+                }
+            }
+
+            $lastError = $this->summarizeProcessFailure($result);
         }
 
-        $files = array_values(array_filter(
-            glob($workDir.DIRECTORY_SEPARATOR.'source.*') ?: [],
-            fn (string $path): bool => ! str_ends_with(strtolower($path), '.part')
-        ));
-
-        return $files[0] ?? null;
+        return [
+            'path' => null,
+            'error' => $lastError,
+            'strategy' => null,
+        ];
     }
 
     /**
@@ -285,6 +307,31 @@ class VideoEvidenceExtractor
     }
 
     /**
+     * @return list<array{name:string,args:list<string>}>
+     */
+    protected function videoDownloadStrategies(): array
+    {
+        return [
+            [
+                'name' => 'merged_mp4',
+                'args' => [
+                    '--format',
+                    'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[ext=mp4]/best',
+                    '--merge-output-format',
+                    'mp4',
+                ],
+            ],
+            [
+                'name' => 'progressive_mp4',
+                'args' => [
+                    '--format',
+                    'mp4/best[ext=mp4]/best',
+                ],
+            ],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     protected function binaryDebugPayload(string $ytDlpPath, string $ffmpegPath): array
@@ -316,6 +363,28 @@ class VideoEvidenceExtractor
         }
 
         return File::exists($path);
+    }
+
+    protected function cleanupDownloadArtifacts(string $workDir): void
+    {
+        foreach (glob($workDir.DIRECTORY_SEPARATOR.'source*') ?: [] as $path) {
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
+    }
+
+    protected function summarizeProcessFailure(object $result): ?string
+    {
+        $output = trim((string) $result->output());
+        $errorOutput = trim((string) $result->errorOutput());
+        $message = $errorOutput !== '' ? $errorOutput : $output;
+
+        if ($message === '') {
+            return 'yt-dlp failed without output.';
+        }
+
+        return Str::limit(preg_replace('/\s+/', ' ', $message) ?? $message, 500, '...');
     }
 
     protected function transcribeVideoAudio(string $videoPath, string $workDir, string $ffmpegPath, ?int $videoDurationSeconds = null): string
