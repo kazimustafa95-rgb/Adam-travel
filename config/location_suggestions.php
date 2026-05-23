@@ -27,6 +27,8 @@ return [
     'video_processing' => [
         'enabled' => filter_var(env('LOCATION_SUGGESTIONS_VIDEO_ENABLED', true), FILTER_VALIDATE_BOOL),
         'yt_dlp_path' => env('YTDLP_PATH', ''),
+        'yt_dlp_cookies_path' => env('YTDLP_COOKIES_PATH', ''),
+        'yt_dlp_js_runtimes' => env('YTDLP_JS_RUNTIMES', ''),
         'ffmpeg_path' => env('FFMPEG_PATH', ''),
         'frame_divisor_seconds' => (int) env('LOCATION_SUGGESTIONS_FRAME_DIVISOR_SECONDS', 2),
         'max_video_seconds' => (int) env('LOCATION_SUGGESTIONS_MAX_VIDEO_SECONDS', 45),

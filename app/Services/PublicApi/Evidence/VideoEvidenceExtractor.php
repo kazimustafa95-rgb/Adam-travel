@@ -16,9 +16,11 @@ class VideoEvidenceExtractor
         }
 
         $ytDlpPath = trim((string) config('location_suggestions.video_processing.yt_dlp_path', ''));
+        $ytDlpCookiesPath = trim((string) config('location_suggestions.video_processing.yt_dlp_cookies_path', ''));
+        $ytDlpJsRuntimes = trim((string) config('location_suggestions.video_processing.yt_dlp_js_runtimes', ''));
         $ffmpegPath = trim((string) config('location_suggestions.video_processing.ffmpeg_path', ''));
         $expectedPlaceCount = $this->extractExpectedPlaceCount($evidence);
-        $binaryDebug = $this->binaryDebugPayload($ytDlpPath, $ffmpegPath);
+        $binaryDebug = $this->binaryDebugPayload($ytDlpPath, $ffmpegPath, $ytDlpCookiesPath, $ytDlpJsRuntimes);
 
         if ($ytDlpPath === '' || $ffmpegPath === '') {
             return $evidence->withAnalysisDebug([
@@ -47,8 +49,8 @@ class VideoEvidenceExtractor
         }
 
         try {
-            $videoDurationSeconds = $this->fetchVideoDurationSeconds($url, $ytDlpPath);
-            $downloadResult = $this->downloadVideo($url, $workDir, $ytDlpPath);
+            $videoDurationSeconds = $this->fetchVideoDurationSeconds($url, $ytDlpPath, $ytDlpCookiesPath, $ytDlpJsRuntimes);
+            $downloadResult = $this->downloadVideo($url, $workDir, $ytDlpPath, $ytDlpCookiesPath, $ytDlpJsRuntimes);
             $videoPath = $downloadResult['path'];
 
             if ($videoPath === null) {
@@ -104,7 +106,13 @@ class VideoEvidenceExtractor
     /**
      * @return array{path:?string,error:?string,strategy:?string}
      */
-    protected function downloadVideo(string $url, string $workDir, string $ytDlpPath): array
+    protected function downloadVideo(
+        string $url,
+        string $workDir,
+        string $ytDlpPath,
+        string $ytDlpCookiesPath = '',
+        string $ytDlpJsRuntimes = '',
+    ): array
     {
         $outputTemplate = $workDir.DIRECTORY_SEPARATOR.'source.%(ext)s';
         $lastError = null;
@@ -116,6 +124,7 @@ class VideoEvidenceExtractor
                 ->timeout(180)
                 ->run([
                     $ytDlpPath,
+                    ...$this->ytDlpRuntimeArgs($ytDlpCookiesPath, $ytDlpJsRuntimes),
                     '--no-playlist',
                     '--no-progress',
                     '--newline',
@@ -260,10 +269,16 @@ class VideoEvidenceExtractor
         return 'fps='.$maxFrames.'/'.$samplingWindowSeconds;
     }
 
-    protected function fetchVideoDurationSeconds(string $url, string $ytDlpPath): ?int
+    protected function fetchVideoDurationSeconds(
+        string $url,
+        string $ytDlpPath,
+        string $ytDlpCookiesPath = '',
+        string $ytDlpJsRuntimes = '',
+    ): ?int
     {
         $result = Process::timeout(60)->run([
             $ytDlpPath,
+            ...$this->ytDlpRuntimeArgs($ytDlpCookiesPath, $ytDlpJsRuntimes),
             '--dump-single-json',
             '--no-download',
             '--no-playlist',
@@ -334,13 +349,16 @@ class VideoEvidenceExtractor
     /**
      * @return array<string, mixed>
      */
-    protected function binaryDebugPayload(string $ytDlpPath, string $ffmpegPath): array
+    protected function binaryDebugPayload(string $ytDlpPath, string $ffmpegPath, string $ytDlpCookiesPath = '', string $ytDlpJsRuntimes = ''): array
     {
         return [
             'yt_dlp_configured' => $ytDlpPath !== '',
             'ffmpeg_configured' => $ffmpegPath !== '',
             'yt_dlp_exists' => $this->binaryPathIsResolvable($ytDlpPath),
             'ffmpeg_exists' => $this->binaryPathIsResolvable($ffmpegPath),
+            'yt_dlp_cookies_configured' => $ytDlpCookiesPath !== '',
+            'yt_dlp_cookies_exists' => $ytDlpCookiesPath !== '' ? File::exists($ytDlpCookiesPath) : false,
+            'yt_dlp_js_runtimes' => $ytDlpJsRuntimes !== '' ? $ytDlpJsRuntimes : null,
             'missing_binary_keys' => array_values(array_filter([
                 $ytDlpPath === '' ? 'YTDLP_PATH' : null,
                 $ffmpegPath === '' ? 'FFMPEG_PATH' : null,
@@ -363,6 +381,26 @@ class VideoEvidenceExtractor
         }
 
         return File::exists($path);
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function ytDlpRuntimeArgs(string $ytDlpCookiesPath = '', string $ytDlpJsRuntimes = ''): array
+    {
+        $args = [];
+
+        if ($ytDlpJsRuntimes !== '') {
+            $args[] = '--js-runtimes';
+            $args[] = $ytDlpJsRuntimes;
+        }
+
+        if ($ytDlpCookiesPath !== '' && File::exists($ytDlpCookiesPath)) {
+            $args[] = '--cookies';
+            $args[] = $ytDlpCookiesPath;
+        }
+
+        return $args;
     }
 
     protected function cleanupDownloadArtifacts(string $workDir): void

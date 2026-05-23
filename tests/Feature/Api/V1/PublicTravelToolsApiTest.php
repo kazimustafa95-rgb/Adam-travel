@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Queue;
@@ -670,6 +671,12 @@ class PublicTravelToolsApiTest extends TestCase
         Config::set('location_suggestions.video_processing.enabled', true);
         Config::set('location_suggestions.video_processing.yt_dlp_path', 'yt-dlp');
         Config::set('location_suggestions.video_processing.ffmpeg_path', 'ffmpeg');
+        Config::set('location_suggestions.video_processing.yt_dlp_js_runtimes', 'node');
+
+        $cookiesPath = storage_path('framework/testing/youtube-cookies.txt');
+        File::ensureDirectoryExists(dirname($cookiesPath));
+        file_put_contents($cookiesPath, "# Netscape HTTP Cookie File\n");
+        Config::set('location_suggestions.video_processing.yt_dlp_cookies_path', $cookiesPath);
 
         Http::fake(function (Request $request) {
             $payload = $request->data();
@@ -823,6 +830,17 @@ class PublicTravelToolsApiTest extends TestCase
         $this->assertSame(2, $ytDlpDownloadAttempts);
         $this->assertSame('Jalan Alor', data_get($response, 'data.places.0.place'));
         $this->assertSame('Petronas Towers', data_get($response, 'data.places.1.place'));
+        Process::assertRan(function ($process) use ($cookiesPath): bool {
+            $command = is_array($process->command) ? $process->command : [$process->command];
+
+            return ($command[0] ?? null) === 'yt-dlp'
+                && in_array('--js-runtimes', $command, true)
+                && in_array('node', $command, true)
+                && in_array('--cookies', $command, true)
+                && in_array($cookiesPath, $command, true);
+        });
+
+        @unlink($cookiesPath);
     }
 
     public function test_public_location_suggestions_endpoint_balances_ranked_video_chunks_to_avoid_tiny_tail_batches(): void
